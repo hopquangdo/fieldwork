@@ -1,0 +1,49 @@
+# ── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ── uv / virtualenv ──────────────────────────────────────
+.venv/
+venv/
+# uv.lock is committed on purpose
+
+# ── secrets / env ───────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── data & pipeline output (large photo sets, zips, journals) ──
+data/
+.output/
+**/.bts_organizer/
+*.zip
+
+# ── Node / Bun (ui/) ────────────────────────────────────
+node_modules/
+.bun/
+*.tsbuildinfo
+# bun.lock / package-lock.json are committed on purpose
+
+# ── editors / OS ────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ── reference material (not ours) ───────────────────────
+example/
+
+# ── misc ────────────────────────────────────────────────
+*.log
+tmp/
+scratch/
