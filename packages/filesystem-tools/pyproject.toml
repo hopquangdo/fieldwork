@@ -1,14 +1,13 @@
 [project]
 name = "filesystem-tools"
-version = "0.1.0"
-description = "Per-tool wrappers around LangChain's file-management tools (+ a custom image `view`), sandboxed and easy to customize."
+version = "0.2.0"
+description = "Windows-safe filesystem primitives (fs_tools.winpath / fs_tools.fsops, zero deps) + optional image (fs_tools.media) and LangChain agent (fs_tools.agent) adapters."
 requires-python = ">=3.10"
-dependencies = [
-    "langchain-core>=0.3.29",
-    "langchain-community>=0.3.14",
-    "pydantic>=2",
-    "pillow>=10",
-]
+dependencies = []
+
+[project.optional-dependencies]
+image = ["pillow>=10"]
+agent = ["langchain-core>=0.3.29", "pydantic>=2", "pillow>=10"]
 
 [build-system]
 requires = ["hatchling"]

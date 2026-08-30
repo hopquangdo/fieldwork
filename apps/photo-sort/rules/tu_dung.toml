@@ -1,0 +1,134 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  photo-sort · CỘT TỰ ĐỨNG · 8 hạng mục (bỏ Mục 3,4 dây co, đánh số lại)
+#  05_SapXepAnh.md: tự đứng KHÔNG có siêu âm thân cột, KHÔNG có ống monopole,
+#  KHÔNG có cấu kiện dây co (dây co / móc co / khóa cáp / ma ní / tăng đơ / vòng ốp).
+# ═══════════════════════════════════════════════════════════════════════════
+
+tower_type    = "tu_dung"
+
+prefer_images = 4
+even_no_trim  = ["7."]        # Mục 7 (đo kích thước) — không cắt còn 4
+keep_as_is    = ["1.", "8."]
+rename_ext    = ".jpg"
+
+[vision]
+max              = 40
+min_conf         = 0.6
+blueprint_folder = "1.Hình ảnh tổng thể cột anten/Hình ảnh khác tổng thể cột anten"
+
+[[naming]]
+folder = ["biển nhà trạm"]
+name   = "Biển nhà trạm"
+[[naming]]
+folder = ["mặt bằng trạm bts"]
+name   = "Tổng thể mặt bằng trạm BTS"
+[[naming]]
+folder = ["mặt đứng"]
+name   = "Mặt đứng cột anten"
+[[naming]]
+folder = ["thiết bị trên cột"]
+name   = "Thiết bị trên cột"
+[[naming]]
+folder = ["bê tông"]
+name   = "Móng"
+[[naming]]
+folder = ["khe hở"]
+name   = "Khe hở đốt"
+[[naming]]
+folder = ["điện trở", "thoát sét"]
+name   = "Thoát sét"
+[[naming]]
+folder = ["thẳng đứng", "nghiêng"]
+name   = "Độ thẳng đứng cột"
+
+# ═══ RULES ═══════════════════════════════════════════════════════════════════
+
+[[rule]]
+from_folder = ["1.hình ảnh tổng thể", "8.hình ảnh dị tật", "di tat"]
+target      = "{keep}"
+
+# Mục 1
+[[rule]]
+match  = ["biển", "bien nha tram"]
+target = "1.Hình ảnh tổng thể cột anten/Hình ảnh biển nhà trạm"
+[[rule]]
+match  = ["mặt bằng trạm", "tổng thể mặt bằng"]
+target = "1.Hình ảnh tổng thể cột anten/Hình ảnh tổng thể mặt bằng trạm BTS"
+[[rule]]
+match   = ["mặt đứng cột"]
+exclude = ["bản vẽ", "ban ve"]
+target  = "1.Hình ảnh tổng thể cột anten/Hình ảnh mặt đứng cột anten"
+[[rule]]
+match   = ["thiết bị trên cột", "cụm thiết bị"]
+exclude = ["thoát sét", "điện trở"]
+target  = "1.Hình ảnh tổng thể cột anten/Hình ảnh thiết bị trên cột"
+
+# Mục 2 · khe hở — theo đốt
+[[rule]]
+match       = ["đốt d", "dot d", "khe hở"]
+from_folder = ["2.công tác kiểm tra khe hở", "khe hở"]
+exclude     = ["chân cột"]
+target      = "2.Công tác kiểm tra khe hở cấu kiện lắp ghép/Công tác chuẩn bị kiểm tra khe hở cấu kiện lắp ghép {group}"
+group_by    = "dot"
+
+# Mục 3 · cường độ bê tông móng — theo móng
+[[rule]]
+match       = ["móng m", "mong m"]
+from_folder = ["3.công tác kiểm tra cường độ bê tông", "cường độ bê tông", "bê tông móng"]
+target      = "3.Công tác kiểm tra cường độ bê tông móng/Công tác chuẩn bị kiểm tra cường độ bê tông móng {group}"
+group_by    = "mong"
+
+# Mục 4 · điện trở / thoát sét — theo vị trí
+[[rule]]
+match       = ["thoát sét", "thoat set", "điện trở", "dien tro", "tiếp địa"]
+from_folder = ["4.công tác đo điện trở", "điện trở nối đất"]
+target      = "4.Công tác đo điện trở nối đất hệ thống chống sét/Công tác đo điện trở nối đất hệ thống thoát sét tại {group}"
+group_by    = "vitri"
+[[rule]]
+match       = ["thoát sét", "điện trở", "dien tro"]
+from_folder = ["4.công tác đo điện trở"]
+target      = "4.Công tác đo điện trở nối đất hệ thống chống sét/Công tác chuẩn bị đo điện trở nối đất hệ thống thoát sét"
+
+# Mục 5 · đo nghiêng — theo điểm đo
+[[rule]]
+match       = ["nghiêng", "nghieng", "thẳng đứng", "độ thẳng", "toạ độ vòng"]
+from_folder = ["5.công tác đo nghiêng", "độ thẳng đứng"]
+target      = "5.Công tác đo nghiêng cột anten/Công tác đo độ thẳng đứng của cột anten tại {group}"
+group_by    = "vitri"
+[[rule]]
+match       = ["nghiêng", "thẳng đứng", "độ thẳng"]
+from_folder = ["5.công tác đo nghiêng"]
+target      = "5.Công tác đo nghiêng cột anten/Công tác chuẩn bị kiểm tra độ thẳng đứng của cột anten"
+
+# Mục 6 · trèo cao — theo vị trí trèo
+[[rule]]
+match       = ["trèo cao", "treo cao", "đường hàn", "ê-cu", "bu lông"]
+from_folder = ["6.công tác trèo cao"]
+target      = "6.Công tác trèo cao (kiểm tra đường hàn, lực siết ê-cu,..)/Thao tác trèo cao tại {group}"
+group_by    = "vitri"
+
+# Mục 7 · đo kích thước cấu kiện — theo cấu kiện (KHÔNG có siêu âm, KHÔNG dây co)
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["móng m", "mong m"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước móng cột anten"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["thanh cánh", "thanh canh"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước thanh cánh"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["thanh giằng", "thanh giang"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước thanh giằng"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["bu lông neo", "bulong neo", "bu long neo"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước tiết diện bu lông neo"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["thân cột", "than cot"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước thân cột"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["mặt bích", "mat bich", "gá treo", "ga treo"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước mặt bích và gá treo"

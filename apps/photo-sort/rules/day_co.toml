@@ -1,0 +1,187 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  photo-sort · CỘT DÂY CO · rules theo HUONG_DAN_SAP_XEP_HINH_ANH.md + 05_SapXepAnh.md
+#  Client sửa file này, KHÔNG sửa code.
+# ═══════════════════════════════════════════════════════════════════════════
+
+tower_type    = "day_co"
+
+# --- tham số SOP (KHÔNG có cờ bật/tắt — graph luôn chạy đủ node, node tự bỏ qua) ---
+prefer_images = 4          # thư mục công tác: ưu tiên ≤ số này, luôn CHẴN
+even_no_trim  = ["9."]     # SOP Mục 9: đừng cắt còn 4, chỉ cần chẵn
+keep_as_is    = ["1.", "10."]   # Mục 1 & 10: giữ nguyên, không ép cặp/chẵn
+rename_ext    = ".jpg"     # .png → convert JPEG thật
+
+[vision]
+max              = 40
+min_conf         = 0.6      # LLM trả folder dưới ngưỡng → để "khác" + ghi "cần người xem"
+blueprint_folder = "1.Hình ảnh tổng thể cột anten/Hình ảnh khác tổng thể cột anten"
+candidates = [
+  "1.Hình ảnh tổng thể cột anten/Hình ảnh biển nhà trạm",
+  "1.Hình ảnh tổng thể cột anten/Hình ảnh tổng thể mặt bằng trạm BTS",
+  "1.Hình ảnh tổng thể cột anten/Hình ảnh mặt đứng cột anten",
+  "1.Hình ảnh tổng thể cột anten/Hình ảnh thiết bị trên cột",
+  "1.Hình ảnh tổng thể cột anten/Hình ảnh khác tổng thể cột anten",
+]
+
+# ảnh không khớp rule nào + không có [fallback] → GIỮ NGUYÊN vị trí (an toàn)
+
+# Mục 2 (SOP §2): gộp các thư mục per-đốt → "đốt {thấp nhất}-{+1}" + "đốt {-1}-{cao nhất}"
+[[dot_range]]
+hm_prefix  = "2."
+target_fmt = "2.Công tác kiểm tra khe hở cấu kiện lắp ghép/Công tác chuẩn bị kiểm tra khe hở cấu kiện lắp ghép đốt {a}-{b}"
+
+# ═══ NAMING: tên cấu kiện suy từ thư mục đích khi đổi tên ═══
+[[naming]]
+folder = ["biển nhà trạm"]
+name   = "Biển nhà trạm"
+[[naming]]
+folder = ["mặt bằng trạm bts"]
+name   = "Tổng thể mặt bằng trạm BTS"
+[[naming]]
+folder = ["mặt đứng"]
+name   = "Mặt đứng cột anten"
+[[naming]]
+folder = ["thiết bị trên cột"]
+name   = "Thiết bị trên cột"
+[[naming]]
+folder = ["lực căng", "bê tông", "lực siết"]
+name   = "Móng"
+[[naming]]
+folder = ["khe hở"]
+name   = "Khe hở đốt"
+[[naming]]
+folder = ["điện trở", "thoát sét"]
+name   = "Thoát sét"
+[[naming]]
+folder = ["thẳng đứng", "nghiêng"]
+name   = "Độ thẳng đứng cột"
+[[naming]]
+folder = ["trèo cao"]
+name   = "Trèo cao"
+
+# ═══ RULES ═══════════════════════════════════════════════════════════════════
+
+# --- giữ nguyên Mục 1 & 10 -------------------------------------------------
+[[rule]]
+from_folder = ["1.hình ảnh tổng thể", "10.hình ảnh dị tật", "di tat"]
+target      = "{keep}"
+
+# --- Mục 1 (chỉ ảnh có tên rõ; screenshot/giờ-chụp đi qua vision) ---------
+[[rule]]
+match  = ["biển", "bien nha tram"]
+target = "1.Hình ảnh tổng thể cột anten/Hình ảnh biển nhà trạm"
+[[rule]]
+match  = ["mặt bằng trạm", "mat bang tram", "tổng thể mặt bằng"]
+target = "1.Hình ảnh tổng thể cột anten/Hình ảnh tổng thể mặt bằng trạm BTS"
+[[rule]]
+match   = ["mặt đứng cột", "mat dung cot"]
+exclude = ["bản vẽ", "ban ve"]
+target  = "1.Hình ảnh tổng thể cột anten/Hình ảnh mặt đứng cột anten"
+[[rule]]
+match   = ["thiết bị trên cột", "thiet bi tren cot", "cụm thiết bị"]
+exclude = ["thoát sét", "thoat set", "điện trở"]
+target  = "1.Hình ảnh tổng thể cột anten/Hình ảnh thiết bị trên cột"
+
+# --- Mục 2 · khe hở — theo đốt có ảnh thực tế ----------------------------
+[[rule]]
+match       = ["đốt d", "dot d", "khe hở"]
+from_folder = ["2.công tác kiểm tra khe hở", "khe hở"]
+exclude     = ["chân cột", "chan cot"]
+target      = "2.Công tác kiểm tra khe hở cấu kiện lắp ghép/Công tác chuẩn bị kiểm tra khe hở cấu kiện lắp ghép {group}"
+group_by    = "dot"
+
+# --- Mục 3 · đo lực căng dây co — theo móng ------------------------------
+[[rule]]
+match       = ["móng m", "mong m"]
+from_folder = ["3.công tác đo lực căng", "lực căng trong dây co"]
+target      = "3.Công tác đo lực căng trong dây co/Công tác chuẩn bị đo lực căng trong dây co {group}"
+group_by    = "mong"
+
+# --- Mục 4 · lực siết khóa cáp — theo móng -----------------------------
+[[rule]]
+match       = ["móng m", "mong m", "khóa cáp", "khoa cap"]
+from_folder = ["4.công tác kiểm tra lực siết", "lực siết khóa cáp"]
+target      = "4.Công tác kiểm tra lực siết khóa cáp/Công tác chuẩn bị kiểm tra lực siết ê-cu khóa cáp {group}"
+group_by    = "mong"
+
+# --- Mục 5 · cường độ bê tông móng — theo móng ------------------------
+[[rule]]
+match       = ["móng m", "mong m"]
+from_folder = ["5.công tác kiểm tra cường độ bê tông", "bê tông móng"]
+target      = "5.Công tác kiểm tra cường độ bê tông móng/Công tác chuẩn bị kiểm tra cường độ bê tông móng {group}"
+group_by    = "mong"
+
+# --- Mục 6 · điện trở / thoát sét — theo vị trí đo -------------------
+[[rule]]
+match       = ["thoát sét", "thoat set", "điện trở", "dien tro", "tiếp địa"]
+from_folder = ["6.công tác đo điện trở", "điện trở nối đất"]
+target      = "6.Công tác đo điện trở nối đất hệ thống chống sét/Công tác đo điện trở nối đất hệ thống thoát sét tại {group}"
+group_by    = "vitri"
+[[rule]]
+match       = ["thoát sét", "thoat set", "điện trở", "dien tro"]
+from_folder = ["6.công tác đo điện trở"]
+target      = "6.Công tác đo điện trở nối đất hệ thống chống sét/Công tác chuẩn bị đo điện trở nối đất hệ thống thoát sét"
+
+# --- Mục 7 · đo nghiêng — theo điểm đo (nếu hạng mục có) ------------
+[[rule]]
+match       = ["nghiêng", "nghieng", "thẳng đứng", "thang dung", "độ thẳng", "toạ độ vòng", "toa do vong"]
+from_folder = ["7.công tác đo nghiêng", "độ thẳng đứng"]
+target      = "7.Công tác đo nghiêng cột anten/Công tác đo độ thẳng đứng của cột anten tại {group}"
+group_by    = "vitri"
+[[rule]]
+match       = ["nghiêng", "nghieng", "thẳng đứng", "độ thẳng"]
+from_folder = ["7.công tác đo nghiêng"]
+target      = "7.Công tác đo nghiêng cột anten/Công tác chuẩn bị kiểm tra độ thẳng đứng của cột anten"
+
+# --- Mục 8 · trèo cao — theo 3 vị trí trèo ----------------------------
+[[rule]]
+match       = ["trèo cao", "treo cao", "đường hàn", "duong han", "ê-cu", "e-cu", "bu lông"]
+from_folder = ["8.công tác trèo cao"]
+target      = "8.Công tác trèo cao (kiểm tra đường hàn, lực siết ê-cu,..)/Thao tác trèo cao tại {group}"
+group_by    = "vitri"
+
+# --- Mục 9 · đo kích thước & siêu âm — theo cấu kiện ----------------
+[[rule]]
+from_folder = ["siêu âm thanh cánh", "sieu am thanh canh"]
+target      = "{keep}"                       # giữ nguyên các thư mục "NN.Hình ảnh siêu âm thanh cánh <c> Đốt D<d>"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["ma ní", "ma ni"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước ma ní"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["tăng đơ", "tang do"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước tăng đơ"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["vòng ốp", "vong op", "bu lông dây co", "dây co", "day co"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước vòng ốp và bu lông dây co"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["móng m", "mong m"]
+exclude     = ["khóa cáp", "ma ní", "móc co", "tăng đơ"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước móng cột anten"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["thanh cánh", "thanh canh"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước thanh cánh"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["thanh giằng", "thanh giang"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước thanh giằng"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["bu lông neo", "bulong neo", "bu long neo"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước tiết diện bu lông neo"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["thân cột", "than cot"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước thân cột"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["móc co", "moc co"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước móc co"
+[[rule]]
+from_folder = ["9.công tác đo kích thước"]
+match       = ["chốt ma ní", "chot ma ni"]
+target      = "9.Công tác đo kích thước cấu kiện cột và siêu âm thanh cánh/Đo kích thước chốt ma ní"

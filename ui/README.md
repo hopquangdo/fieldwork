@@ -1,26 +1,47 @@
-# ui — BTS organizer (terminal UI)
+# ui — photo-sort (terminal UI)
 
-Bun + SolidJS + OpenTUI. Talks to the `bts-organizer` HTTP API.
+Bun + SolidJS + OpenTUI. Nói chuyện với HTTP API của `graphrun`.
 
-## Run
+## Chạy
+
+Cần **Bun** (https://bun.sh). Kiểm tra: `bun --version`.
 
 ```bash
-# 1. start the API (from repo root)
-uv run uvicorn "bts_organizer.api.app:app" --port 8765
+# 1. API (ở gốc repo)
+uv run graphrun serve            # http://127.0.0.1:8765
 
-# 2. start the UI
+# 2. UI (thư mục ui/)
 cd ui
-bun install
-bun run src/index.tsx
+bun install                      # lần đầu
+bun run dev
 ```
 
-Override the API URL with `BTS_API_URL`.
+## Điền sẵn để "chỉ ấn Chạy"
 
-## Flow
+Đặt biến môi trường trước khi `bun run dev` — các ô sẽ tự điền:
 
-1. **Browse / Scan** a workspace → station list with image counts.
-2. **Dry-run** a station (or "Dry-run all") → the graph runs without touching
-   disk; the log shows: bảng đếm hạng mục, cây kết quả (diff), gaps, ảnh cần
-   vision, HARD fails.
-3. **Apply** → re-runs and writes to disk (`move` never overwrites, journal makes
-   it resumable). Button only enables after a clean dry-run.
+| Biến | Ý nghĩa |
+|---|---|
+| `BTS_INPUT` | thư mục trạm mặc định |
+| `BTS_OUTPUT` | thư mục kết quả mặc định |
+| `BTS_VERBOSE=1` | mở sẵn log "Chi tiết" (mặc định: Gọn) |
+| `BTS_API_URL` | địa chỉ API (mặc định `http://127.0.0.1:8765`) |
+
+UI **luôn GHI THẬT** và **vòng AI sửa luôn bật** — không có nút tắt.
+
+PowerShell:
+
+```powershell
+$env:BTS_INPUT  = "D:\...\unprocessed\TQG00006_Chiêm Hóa, Tuyên Quang"
+$env:BTS_OUTPUT = "D:\...\ket-qua"
+cd ui; bun run dev
+```
+
+## Luồng
+
+1. Hai ô thư mục **trạm** + **kết quả** đã điền sẵn (đổi bằng cách gõ, hoặc nút `📁`).
+   `Tab` = chuyển ô, `Esc` = thoát.
+2. Nút `Gọn / Chi tiết` = mức chi tiết của log.
+3. Bấm `▶ CHẠY` — luôn ghi thật: copy trạm sang output rồi sắp tại chỗ (`move` không đè,
+   có journal nên resume được). `validate` thấy hạng mục lệch chuẩn → AI tự sửa rồi kiểm lại.
+4. Log chảy trực tiếp từng bước `⏺ / ⎿ / →`, tự cuộn xuống dòng mới nhất.

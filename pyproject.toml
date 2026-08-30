@@ -3,19 +3,19 @@ name = "wincua-workspace"
 version = "0"
 requires-python = ">=3.10"
 dependencies = [
-    "agent-core",
-    "filesystem-tools",
-    "bts-organizer",
-    "langchain-community>=0.4.2",
+    "graphrun[api]",
+    "filesystem-tools[agent]",
+    "photo-sort[llm]",
 ]
 
 [tool.uv.workspace]
 members = ["packages/*", "apps/*"]
 
 [tool.uv.sources]
+graphrun = { workspace = true }
 agent-core = { workspace = true }
 filesystem-tools = { workspace = true }
-bts-organizer = { workspace = true }
+photo-sort = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=8", "httpx>=0.27"]
@@ -23,7 +23,8 @@ dev = ["pytest>=8", "httpx>=0.27"]
 [tool.pytest.ini_options]
 testpaths = ["packages", "apps"]
 pythonpath = [
+    "packages/graphrun/src",
     "packages/agent-core/src",
     "packages/filesystem-tools/src",
-    "apps/bts-organizer/src",
+    "apps/photo-sort/src",
 ]

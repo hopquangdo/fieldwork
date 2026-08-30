@@ -1,23 +1,6 @@
-export type Station = {
-  name: string
-  path: string
-  imageCount: number
-  status: "ready" | "unknown"
-}
+export type Feature = { name: string; summary: string }
 
-export type WorkspaceReport = {
-  root: string
-  directories: number
-  files: number
-  images: number
-  stations: Station[]
-}
-
-export type WorkflowStep = {
-  name: string
-  status: "ok" | "error" | "skipped"
-  detail: string
-}
+export type Stage = { name: string; status: "ok" | "error" | "skipped"; detail: string; seconds: number }
 
 export type CountRow = {
   id: number
@@ -27,35 +10,22 @@ export type CountRow = {
   note: string
 }
 
-export type TreeRow = {
-  kind: "add" | "del" | "move" | "skip" | "same"
-  label: string
-  depth: number
-}
-
-export type VisionRow = {
-  q: string
-  folder: string | null
-  blueprint: boolean
-  confidence: number
-  attempt: number
-}
-
-export type WorkflowReport = {
-  station: string
-  towerType: string
-  imagesBefore: number
-  imagesAfter: number
+export type Report = {
+  feature: string
+  target: string
+  run_id: string
+  dry_run: boolean
   aborted: boolean
-  repairIters: number
-  counts: CountRow[]
-  tree: TreeRow[]
-  vision: VisionRow[]
-  gaps: string[]
-  unresolved: string[]
-  manualReview: number[]
-  exec: { status: string; applied: number; failed: number; failures: string[] }
-  operations: { mkdir: number; move: number; rmdir: number; total: number }
-  steps: WorkflowStep[]
+  stages: Stage[]
+  sections: Record<string, unknown>
   errors: string[]
+}
+
+export type JobSummary = {
+  id: string
+  feature: string
+  status: "queued" | "running" | "done" | "error"
+  created: number
+  error: string | null
+  report: Report | null
 }
