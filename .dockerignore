@@ -1,0 +1,14 @@
+.git
+.venv
+.idea
+.output
+.pytest_cache
+**/__pycache__
+data
+dist
+docs
+example
+ui
+tests
+*.json
+.env

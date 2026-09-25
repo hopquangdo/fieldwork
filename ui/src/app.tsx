@@ -1,14 +1,26 @@
+import { join, resolve } from "node:path"
 import { createEffect, createSignal, For, onMount } from "solid-js"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { getJob, listFeatures, startRun, streamJob } from "./api/client"
+import { BUNDLED, WORKDIR, ownsBackend, restartBackend } from "./backend"
+import { loadConfig, maskKey, saveConfig } from "./config"
 import { formatLog } from "./state/format"
-import type { Feature } from "./state/types"
+import type { Feature, LlmUsage, Report } from "./state/types"
 
-// Defaults — override with BTS_INPUT / BTS_OUTPUT before `bun run dev`.
-const FALLBACK_INPUT =
-  "D:\\Workspace\\Client Project\\windows-computer-use-agent\\data\\TQG00006_Chiêm Hóa, Tuyên Quang-20260828T031314Z-1-001\\unprocessed\\TQG00006_Chiêm Hóa, Tuyên Quang"
-const FALLBACK_OUTPUT =
-  "D:\\Workspace\\Client Project\\windows-computer-use-agent\\data\\TQG00006_Chiêm Hóa, Tuyên Quang-20260828T031314Z-1-001\\ket-qua"
+// Defaults — override with BTS_INPUT / BTS_OUTPUT. Bản cài (npm) để trống; chạy từ repo thì điền trạm thử.
+const REPO = resolve(import.meta.dir, "..", "..")
+const FALLBACK_INPUT = BUNDLED ? "" : join(REPO, "data", "RAW", "DBN00009_2")
+const FALLBACK_OUTPUT = BUNDLED ? "" : join(REPO, ".output", "thu-DBN00009_2")
+
+const nf = new Intl.NumberFormat("vi-VN")
+
+/** " · 12.345 in · 678 out · 1.000 cache · ~123 VND" từ section ``llm_usage`` ("" nếu không gọi LLM). */
+function usageText(report: Report | null): string {
+  const u = report?.sections?.llm_usage as LlmUsage | undefined
+  if (!u || !u.llm_calls) return " · không dùng LLM"
+  return ` · ${nf.format(u.input_tokens)} in · ${nf.format(u.output_tokens)} out · ` +
+    `${nf.format(u.cache_read_tokens)} cache · ~${nf.format(Math.round(u.cost_vnd))} VND`
+}
 
 function lineColor(l: string): string {
   const s = l.trimStart()
@@ -21,6 +33,9 @@ function lineColor(l: string): string {
   return "#cbd5e1"
 }
 
+type Field = "key" | "input" | "output"
+const FIELDS: Field[] = ["key", "input", "output"]
+
 export function App() {
   const dims = useTerminalDimensions()
   const [features, setFeatures] = createSignal<Feature[]>([])
@@ -28,7 +43,8 @@ export function App() {
   const [input, setInput] = createSignal(process.env.BTS_INPUT || FALLBACK_INPUT)
   const [output, setOutput] = createSignal(process.env.BTS_OUTPUT || FALLBACK_OUTPUT)
   const [compact, setCompact] = createSignal(process.env.BTS_VERBOSE !== "1")
-  const [field, setField] = createSignal<"input" | "output">("input")
+  const [apiKey, setApiKey] = createSignal(loadConfig().apiKey ?? "")
+  const [field, setField] = createSignal<Field>(apiKey() ? "input" : "key")
   const [lines, setLines] = createSignal<string[]>([])
   const [busy, setBusy] = createSignal(false)
   const [status, setStatus] = createSignal("Đang kết nối API…")
@@ -65,6 +81,21 @@ export function App() {
     if (sel) (which === "input" ? setInput : setOutput)(sel)
   }
 
+  /** Lưu key (APPDATA) + bật lại backend do UI quản để nhận key mới. */
+  const saveKey = async () => {
+    const key = apiKey().trim()
+    saveConfig({ ...loadConfig(), apiKey: key || undefined })
+    setField("input")
+    if (!ownsBackend()) return setStatus(key ? "Đã lưu key — backend ngoài dùng key của nó" : "Đã xoá key")
+    setStatus("Đã lưu key — đang bật lại backend…")
+    try {
+      await restartBackend(key || undefined)
+      setStatus(key ? "Đã lưu key ✓" : "Đã xoá key — bước AI sẽ bị bỏ qua")
+    } catch (e) {
+      setStatus(`Backend lỗi: ${e instanceof Error ? e.message : e}`)
+    }
+  }
+
   const run = async () => {
     if (busy()) return
     if (!input().trim() || !output().trim()) return setStatus("Thiếu thư mục trạm / kết quả")
@@ -94,8 +125,8 @@ export function App() {
         j = await getJob(id)
       }
       stop()
-      push(j.status === "done" ? "✓ Hoàn tất" : `✗ ${j.error}`)
-      setStatus(j.status === "done" ? "Xong — xem báo cáo .output/*.json" : "Lỗi")
+      push(j.status === "done" ? `✓ Hoàn tất${usageText(j.report)}` : `✗ ${j.error}`)
+      setStatus(j.status === "done" ? `Xong — báo cáo: ${join(WORKDIR, ".output")}` : "Lỗi")
     } catch (e) {
       push(`✗ ${e instanceof Error ? e.message : String(e)}`)
       setStatus("Lỗi")
@@ -107,10 +138,10 @@ export function App() {
   useKeyboard((k) => {
     if (k.name === "escape") process.exit(0)
     if (k.ctrl && k.name === "c") process.exit(0)
-    if (k.name === "tab") setField((f) => (f === "input" ? "output" : "input"))
+    if (k.name === "tab") setField((f) => FIELDS[(FIELDS.indexOf(f) + 1) % FIELDS.length])
   })
 
-  const logHeight = () => Math.max(3, dims().height - 10)
+  const logHeight = () => Math.max(3, dims().height - 11)
 
   return (
     <box style={{ width: dims().width, height: dims().height, flexDirection: "column", backgroundColor: "#0b1220" }}>
@@ -119,6 +150,18 @@ export function App() {
         <text fg="#64748b">{features().find((f) => f.name === feature())?.summary ?? ""}</text>
 
         <box style={{ flexDirection: "row", marginTop: 1 }}>
+          <box style={{ width: 10, flexShrink: 0 }}>
+            <text fg={field() === "key" ? "#fbbf24" : "#64748b"}>{field() === "key" ? "▶ API key" : "  API key"}</text>
+          </box>
+          {field() === "key" ? (
+            <input style={{ flexGrow: 1, backgroundColor: "#111c2e" }} value={apiKey()} focused onInput={(v) => setApiKey(v)} onSubmit={() => void saveKey()} placeholder="dán key LLM (OpenRouter) rồi Enter để lưu" />
+          ) : (
+            <box style={{ flexGrow: 1, backgroundColor: "#111c2e" }} onMouseUp={() => setField("key")}>
+              <text fg={apiKey() ? "#94a3b8" : "#f87171"}>{apiKey() ? maskKey(apiKey()) : "chưa có key — bước AI sẽ bị bỏ qua (bấm để nhập)"}</text>
+            </box>
+          )}
+        </box>
+        <box style={{ flexDirection: "row" }}>
           <box style={{ width: 10, flexShrink: 0 }}>
             <text fg={field() === "input" ? "#fbbf24" : "#64748b"}>{field() === "input" ? "▶ Trạm" : "  Trạm"}</text>
           </box>

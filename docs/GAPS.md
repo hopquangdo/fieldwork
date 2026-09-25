@@ -19,7 +19,7 @@ Ký hiệu mức độ: 🔴 CRITICAL (ra kết quả sai / hỏng file) · 🟠
 - [x] **C3 · `safe_move` free_name khi trùng** — ✅ `plan` dedup toàn cục `(folder, final_name)`;
   `safe_move(on_exist="raise")` từ pipeline; apply bắt `FileExistsError` → `report.conflicts`.
 - [x] **C4 · Không đọc `TABLEBia.txt`** — ✅ 2026-08-29
-  `photo_sort/domain/metadata.py` (`read_meta`, `peek_tower_type`). `scan` → `ctx.data["meta"]`
+  `src/domain/metadata.py` (`read_meta`, `peek_tower_type`). `scan` → `ctx.data["meta"]`
   + `report.sections["meta"]` + warning nếu loại cột ≠ rules. `graphrun.Feature.rules_for(input)`
   hook — `run_feature` gọi trước khi load Config; `photo_sort` tự chọn `day_co.toml` / `tu_dung.toml`.
   *Còn:* đối chiếu `n_dot` khai vs đốt thực tế → chưa cảnh báo (nằm chung H5).

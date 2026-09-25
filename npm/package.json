@@ -1,0 +1,28 @@
+{
+  "name": "@hopquangdo/photo-sort",
+  "version": "0.1.0",
+  "description": "Sắp ảnh kiểm định cột BTS vào cấu trúc thư mục phụ lục — giao diện terminal + backend chạy sẵn (Windows x64).",
+  "bin": {
+    "photo-sort": "bin/photo-sort.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "files": [
+    "bin",
+    "install.js",
+    "README.md"
+  ],
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "engines": {
+    "node": ">=18"
+  },
+  "photoSort": {
+    "distUrl": "https://github.com/hopquangdo/fieldwork/releases/download/v{version}/photo-sort-win-x64.zip"
+  },
+  "license": "UNLICENSED",
+  "publishConfig": {
+    "access": "public"
+  }
+}

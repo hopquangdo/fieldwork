@@ -1,0 +1,21 @@
+# Backend photo-sort chạy trong Docker; client chỉ chạy ui.exe (dist/photo-sort-client).
+#   docker compose up -d --build      bật (tự chạy lại khi khởi động Docker)
+#   docker compose logs -f            xem log
+#   docker compose down               tắt
+services:
+  backend:
+    build: .
+    image: photo-sort-backend
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    env_file:
+      - path: .env            # LLM_API_KEY / LLM_MODEL_NAME / LLM_BASE_URL
+        required: false
+    environment:
+      # Client gửi đường dẫn Windows (D:\...) → đổi sang chỗ mount bên dưới.
+      GRAPHRUN_PATH_MAP: 'D:\=/host/d'
+      GRAPHRUN_ALLOWED_ROOTS: /host
+    volumes:
+      - "D:/:/host/d"         # ổ chứa ảnh; thêm ổ khác: "E:/:/host/e" + 'D:\=/host/d;E:\=/host/e'
+      - ./.output:/work/.output   # báo cáo + journal

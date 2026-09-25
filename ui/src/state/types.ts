@@ -29,3 +29,14 @@ export type JobSummary = {
   error: string | null
   report: Report | null
 }
+
+/** ``report.sections.llm_usage`` — token + chi phí cộng dồn cả lượt chạy. */
+export type LlmUsage = {
+  model: string
+  llm_calls: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_tokens: number
+  cost_usd: number
+  cost_vnd: number
+}

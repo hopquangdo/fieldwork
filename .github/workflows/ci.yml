@@ -1,0 +1,27 @@
+# Mỗi push / PR: test Python + kiểm tra kiểu UI.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest          # fs tools dùng đường dẫn Windows (\\?\)
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+        working-directory: ui
+      - run: bunx tsc --noEmit
+        working-directory: ui

@@ -22,7 +22,7 @@ venv/
 !.env.example
 
 # ── data & pipeline output (large photo sets, zips, journals) ──
-data/
+/data/
 .output/
 **/.bts_organizer/
 *.zip

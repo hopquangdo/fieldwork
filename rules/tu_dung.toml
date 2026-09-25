@@ -1,0 +1,255 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  photo-sort · CỘT TỰ ĐỨNG · 8 hạng mục (bỏ Mục 3,4 dây co, đánh số lại)
+#  05_SapXepAnh.md: tự đứng KHÔNG có siêu âm thân cột, KHÔNG có ống monopole,
+#  KHÔNG có cấu kiện dây co (dây co / móc co / khóa cáp / ma ní / tăng đơ / vòng ốp).
+# ═══════════════════════════════════════════════════════════════════════════
+
+extends    = "_base"
+tower_type = "tu_dung"
+
+[structure]                   # tự đứng: 8 hạng mục
+even_no_trim    = ["7."]      # Mục 7 (đo kích thước) — không cắt còn 4
+keep_as_is      = ["1.", "8."]
+keep_singletons = true        # RULE.md TH3: cấu kiện/vị trí chỉ 1 ảnh → giữ ảnh, không làm rỗng thư mục
+odd_fix         = "sibling"   # số thư mục lẻ → thêm thư mục cặp RỖNG cho thư mục cuối (vd "…đốt 7")
+trim_earliest   = ["đo kích thước"]   # ép chẵn ở Mục 7: bỏ ảnh chụp SỚM nhất
+odd_folders_skip = ["kích thước"]     # Mục 7: mỗi cấu kiện 1 thư mục — không ép số thư mục chẵn
+
+[folders]
+# cặp tự đứng: "Công tác chuẩn bị X" ↔ "Công tác X" (X đã mang động từ: "kiểm tra …", "đo …")
+pair_names = ["Công tác chuẩn bị ", "Công tác "]
+
+# Danh mục hạng mục CHUẨN của tự đứng — dùng để chuẩn hoá số/tên khi input đánh số
+# theo loại cột khác (vd input dây co 10 hạng mục) — xem steps/normalize.py.
+[hang_muc]
+1  = "Hình ảnh tổng thể cột anten"
+2  = "Công tác kiểm tra khe hở cấu kiện lắp ghép"
+3  = "Công tác kiểm tra cường độ bê tông móng"
+4  = "Công tác đo điện trở nối đất hệ thống chống sét"
+5  = "Công tác đo nghiêng cột anten"
+6  = "Công tác trèo cao (kiểm tra đường hàn, lực siết ê-cu,..)"
+7  = "Công tác đo kích thước cấu kiện cột anten"
+8  = "Hình ảnh dị tật bất thường"
+
+# hạng mục CHỈ CÓ ở dây co — không có chỗ tương ứng ở tự đứng → "drop"
+# (ảnh của chúng quay về "chưa xếp" để classify/vision xếp lại theo rule tự đứng)
+[hang_muc_alias]
+"đo lực căng"        = "drop"
+"lực siết khóa cáp"  = "drop"
+"khóa cáp"           = "drop"
+
+# ═══ TÊN THƯ MỤC CON CHUẨN (steps/canonicalize.py · domain/canonical.py) ═══════════
+# hm = chuỗi nhận diện hạng mục · khac = tên 'Hình ảnh khác' chuẩn · templates = mẫu tên
+# ({nhóm} = khoá nhóm, {nhóm_k} = chỉ số) · ensure = luôn tạo (kể cả rỗng) · unmatched =
+# thư mục không khớp: "keep" / "khac". Tên theo phụ lục chuẩn đã duyệt (GT DBN00009_2).
+[[subfolders]]
+hm        = ["tổng thể"]
+khac      = "Hình ảnh khác tổng thể cột anten"
+ensure    = ["Hình ảnh biển nhà trạm", "Hình ảnh tổng thể mặt bằng trạm BTS",
+             "Hình ảnh mặt đứng cột anten", "Hình ảnh thiết bị trên cột"]
+[[subfolders]]
+hm        = ["khe hở"]
+khac      = "Hình ảnh khác công tác kiểm tra khe hở lắp ghép"
+templates = ["Công tác chuẩn bị kiểm tra khe hở cấu kiện lắp ghép đốt {dot_k}",
+             "Công tác kiểm tra khe hở cấu kiện lắp ghép đốt {dot_k}"]
+pairing   = "none"            # mỗi đốt 1 thư mục; chỉ thêm cặp rỗng khi TỔNG số thư mục lẻ (odd_fix)
+unmatched = "khac"
+[[subfolders]]
+hm        = ["bê tông"]
+khac      = "Hình ảnh khác công tác kiểm tra cường độ bê tông móng"
+templates = ["Công tác chuẩn bị kiểm tra cường độ bê tông móng Móng {mong}",
+             "Công tác kiểm tra cường độ bê tông móng Móng {mong}"]
+pairing   = "all"             # mỗi móng: "chuẩn bị" (có ảnh) + "kiểm tra" (rỗng)
+unmatched = "khac"
+[[subfolders]]
+hm        = ["điện trở"]
+khac      = "Hình ảnh khác công tác đo điện trở nối đất hệ thống chống sét"
+templates = ["Công tác đo điện trở nối đất hệ thống thoát sét tại {vitri}"]
+unmatched = "khac"
+[[subfolders]]
+hm        = ["nghiêng"]
+khac      = "Hình ảnh khác công tác đo nghiêng cột anten"
+templates = ["Công tác đo độ thẳng đứng của cột anten"]
+ensure    = ["Công tác chuẩn bị kiểm tra độ thẳng đứng của cột anten"]
+unmatched = "khac"
+[[subfolders]]
+hm        = ["trèo cao"]
+khac      = "Hình ảnh khác công tác trèo cao"
+templates = ["Thao tác trèo cao tại {vitri}"]
+ensure    = ["Công tác chuẩn bị trèo cao"]
+unmatched = "khac"
+[[subfolders]]
+hm        = ["kích thước"]
+khac      = "Hình ảnh khác đo kích thước cấu kiện cột anten"
+templates = ["Đo kích thước móng cột anten Móng {mong}", "Đo kích thước thanh cánh",
+             "Đo kích thước thanh giằng", "Đo kích thước tiết diện bu lông neo",
+             "Đo kích thước thân cột", "Đo kích thước mặt bích và gá treo",
+             "Hình ảnh siêu âm thanh cánh Đốt {dot}"]
+ensure    = ["Hình ảnh chuẩn bị đo kích thước cấu kiện cột anten"]
+unmatched = "khac"
+[[subfolders]]
+hm        = ["dị tật"]
+khac      = "Hình ảnh khác hình ảnh dị tật bất thường"
+unmatched = "keep"            # thư mục dị tật mang tên lỗi — giữ nguyên
+
+[vision]
+max              = 40
+min_conf         = 0.6
+recheck_in       = ["tổng thể"]   # Mục 1: ảnh chỉ có giờ trong thư mục con vẫn mở xem (bản vẽ lạc…)
+blueprint_folder = "1.Hình ảnh tổng thể cột anten/Hình ảnh khác tổng thể cột anten"
+
+[[naming]]
+folder = ["biển nhà trạm"]
+name   = "Biển nhà trạm"
+[[naming]]
+folder = ["mặt bằng trạm bts"]
+name   = "Tổng thể mặt bằng trạm BTS"
+[[naming]]
+folder = ["mặt đứng"]
+name   = "Mặt đứng cột anten"
+[[naming]]
+folder = ["thiết bị trên cột"]
+name   = "Thiết bị trên cột"
+[[naming]]
+folder = ["bê tông"]
+name   = "Móng"
+[[naming]]
+folder = ["khe hở"]
+name   = "Khe hở đốt"
+[[naming]]
+folder = ["điện trở", "thoát sét"]
+name   = "Thoát sét"
+[[naming]]
+folder = ["thẳng đứng", "nghiêng"]
+name   = "Độ thẳng đứng cột"
+
+# Mục 2 (SOP §2): đặt tên thư mục khe hở theo đốt.
+# mode = "all" (mặc định) → mỗi đốt 1 thư mục "đốt n" · "extremes" → 2 cực trị "đốt {a}-{b}", đốt giữa sang "khác"
+[[dot_range]]
+hm_prefix  = "2."
+mode       = "all"
+target_fmt = "2.Công tác kiểm tra khe hở cấu kiện lắp ghép/Công tác chuẩn bị kiểm tra khe hở cấu kiện lắp ghép đốt {a}"
+
+# ═══ RULES ═══════════════════════════════════════════════════════════════════
+
+[[rule]]
+from_folder = ["1.hình ảnh tổng thể", "8.hình ảnh dị tật", "di tat"]
+target      = "{keep}"
+
+# Mục 1
+[[rule]]
+match  = ["biển", "bien nha tram"]
+target = "1.Hình ảnh tổng thể cột anten/Hình ảnh biển nhà trạm"
+[[rule]]
+match  = ["mặt bằng trạm", "tổng thể mặt bằng"]
+target = "1.Hình ảnh tổng thể cột anten/Hình ảnh tổng thể mặt bằng trạm BTS"
+[[rule]]
+match   = ["mặt đứng cột"]
+exclude = ["bản vẽ", "ban ve"]
+target  = "1.Hình ảnh tổng thể cột anten/Hình ảnh mặt đứng cột anten"
+[[rule]]
+match   = ["thiết bị trên cột", "cụm thiết bị"]
+exclude = ["thoát sét", "điện trở"]
+target  = "1.Hình ảnh tổng thể cột anten/Hình ảnh thiết bị trên cột"
+
+# Siêu âm thanh cánh — nếu trạm CÓ chụp (thực tế vẫn kiểm tra được ở cột tự đứng) thì
+# giữ nguyên thư mục, không gộp vào "Đo kích thước thanh cánh" (khác mục đích).
+[[rule]]
+from_folder = ["siêu âm thanh cánh"]
+target      = "{keep}"
+
+# Mục 2 · khe hở — theo đốt. strict_folder: "Đốt Dn" cũng là tên ảnh trèo cao (Mục 6)
+# — không có from_folder xác nhận thì BỎ, đừng hút nhầm ảnh trèo cao vào khe hở.
+[[rule]]
+match          = ["đốt d", "dot d", "khe hở"]
+from_folder    = ["2.công tác kiểm tra khe hở", "khe hở"]
+exclude        = ["chân cột"]
+strict_folder  = true
+target         = "2.Công tác kiểm tra khe hở cấu kiện lắp ghép/Công tác chuẩn bị kiểm tra khe hở cấu kiện lắp ghép {group}"
+group_by       = "dot"
+
+# Mục 3 · cường độ bê tông móng — theo móng. not_from_folder: ảnh "Móng Mx" đang nằm
+# trong thư mục ĐO KÍCH THƯỚC (đo từ móng ra cho cấu kiện khác: thân cột/bu lông
+# neo/thanh…) không bị hút nhầm về đây — Mục 7 đã có rule riêng cho chính nó.
+[[rule]]
+match           = ["móng m", "mong m"]
+from_folder     = ["3.công tác kiểm tra cường độ bê tông", "cường độ bê tông", "bê tông móng"]
+not_from_folder = ["đo kích thước", "do kich thuoc"]
+target          = "3.Công tác kiểm tra cường độ bê tông móng/Công tác chuẩn bị kiểm tra cường độ bê tông móng Móng {group}"
+group_by        = "mong"
+
+# Mục 4 · điện trở / thoát sét — theo vị trí
+[[rule]]
+match       = ["thoát sét", "thoat set", "điện trở", "dien tro", "tiếp địa"]
+from_folder = ["4.công tác đo điện trở", "điện trở nối đất"]
+target      = "4.Công tác đo điện trở nối đất hệ thống chống sét/Công tác đo điện trở nối đất hệ thống thoát sét tại {group}"
+group_by    = "vitri"
+# (không có thư mục "chuẩn bị" ở Mục 4 tự đứng — ảnh thoát sét không rõ vị trí ở lại 'khác')
+
+# Mục 5 · đo nghiêng — tên file là ĐIỂM ĐO (không phải cấu kiện) → để chung 1 thư
+# mục, KHÔNG tách theo từng vòng/vị trí (RULE.md: "để nguyên trong thư mục đo độ
+# thẳng đứng").
+[[rule]]
+match       = ["nghiêng", "nghieng", "thẳng đứng", "độ thẳng", "toạ độ vòng"]
+from_folder = ["5.công tác đo nghiêng", "độ thẳng đứng"]
+target      = "5.Công tác đo nghiêng cột anten/Công tác đo độ thẳng đứng của cột anten"
+# "chân cột"/"đỉnh cột"/"hướng bắc" dùng chung với khe hở (Mục 2) / trèo cao (Mục 6)
+# → strict_folder: chỉ nhận khi ảnh ĐANG NẰM trong thư mục đo nghiêng (không hút từ
+# nơi khác qua khớp lỏng).
+[[rule]]
+match          = ["chân cột", "đỉnh cột", "hướng bắc"]
+from_folder    = ["5.công tác đo nghiêng", "độ thẳng đứng"]
+strict_folder  = true
+target         = "5.Công tác đo nghiêng cột anten/Công tác đo độ thẳng đứng của cột anten"
+[[rule]]
+match          = ["nghiêng", "thẳng đứng", "độ thẳng"]
+from_folder    = ["5.công tác đo nghiêng"]
+strict_folder  = true
+target         = "5.Công tác đo nghiêng cột anten/Công tác chuẩn bị kiểm tra độ thẳng đứng của cột anten"
+
+# Mục 6 · trèo cao — theo vị trí trèo
+[[rule]]
+match       = ["trèo cao", "treo cao", "đường hàn", "ê-cu", "bu lông"]
+from_folder = ["6.công tác trèo cao"]
+target      = "6.Công tác trèo cao (kiểm tra đường hàn, lực siết ê-cu,..)/Thao tác trèo cao tại {group}"
+group_by    = "vitri"
+
+# Mục 6 · trèo cao — ảnh chỉ ghi "Đốt Dn" (không ghi vị trí): suy vị trí từ đốt n / tổng
+# số đốt ([groups.vitri_dot]). strict_folder: "Đốt Dn" cũng là tên ảnh khe hở (Mục 2).
+[[rule]]
+match         = ["đốt d", "dot d"]
+from_folder   = ["6.công tác trèo cao", "trèo cao"]
+strict_folder = true
+target        = "6.Công tác trèo cao (kiểm tra đường hàn, lực siết ê-cu,..)/Thao tác trèo cao tại {group}"
+group_by      = ["vitri", "vitri_dot"]
+
+# Mục 7 · đo kích thước cấu kiện — theo cấu kiện (KHÔNG có siêu âm, KHÔNG dây co)
+# not_from_folder: 1 số ảnh cấu kiện khác vẫn dán prefix "Móng Mx" (đo từ móng ra) —
+# nếu thư mục nguồn đã ghi rõ cấu kiện khác thì đừng hút vào "móng cột anten".
+[[rule]]
+from_folder     = ["7.công tác đo kích thước"]
+match           = ["móng m", "mong m"]
+not_from_folder = ["bu lông neo", "bu long neo", "thân cột", "than cot", "thanh cánh", "thanh canh", "thanh giằng", "thanh giang", "mặt bích", "mat bich"]
+target          = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước móng cột anten Móng {group}"
+group_by        = "mong"
+# tên kiểu "Thanh cánh Thanh giằng Đốt Dn": cấu kiện THẬT là từ đứng sau → xét giằng trước
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["thanh giằng", "thanh giang"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước thanh giằng"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["thanh cánh", "thanh canh"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước thanh cánh"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["bu lông neo", "bulong neo", "bu long neo"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước tiết diện bu lông neo"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["thân cột", "than cot"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước thân cột"
+[[rule]]
+from_folder = ["7.công tác đo kích thước"]
+match       = ["mặt bích", "mat bich", "gá treo", "ga treo"]
+target      = "7.Công tác đo kích thước cấu kiện cột anten/Đo kích thước mặt bích và gá treo"

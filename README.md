@@ -1,17 +1,27 @@
 # windows-computer-use-agent
 
-uv workspace monorepo.
+photo-sort — ``src/`` sắp theo tầng (mỗi tầng là một package cấp cao nhất).
 
 ```
-packages/                     libraries — reusable across repos (src layout, own tests/)
-├── graphrun/                 LangGraph execution harness: run a graph with dry-run,
-│                             resumable journal, staged report, config/rules, feature registry
-├── filesystem-tools/         fs_tools.core  — Windows-safe FS primitives, zero deps
-│                             fs_tools.agent — LangChain tools  (extra: [agent])
-└── agent-core/               LangGraph ReAct runtime + model_from_env  (LLM plumbing)
-
-apps/                         runnable products (also graphrun features via entry-point)
-└── photo-sort/               sort BTS inspection photos into the report-appendix structure
+src/
+├── domain/          Photo/Move, Issue, Profile SOP (profile/), luật khớp, đặt tên, hạng mục…
+├── application/     services/run_graph.py (chạy 1 feature) · services/sort_photos.py
+├── runtime/         @node, state, context, runner, registry, feature
+├── agent/           ReAct agent · prompt · vision
+├── tools/           repair.py — tool cho agent sửa bảng assign
+├── pipeline/        pipeline.py (lắp graph) · feature.py (đăng ký photo-sort)
+├── steps/           các node của pipeline
+├── infrastructure/
+│   ├── llm/         client, factory, stream, usage, pricing, tracker, data/model_prices.json
+│   ├── filesystem/  base, operations (Windows-safe, `\?\`), image
+│   ├── persistence/ journal
+│   └── observability/ report, console
+├── interfaces/      api/ (FastAPI) · cli/commands.py (photo-sort, photo-sort-eval, graphrun)
+├── config/          settings.py, llm.py (.env) · loader.py (rules TOML)
+└── evaluation/      evaluator.py
+rules/               SOP profiles (_base / day_co / tu_dung .toml)
+tests/               unit/{domain,agent,runtime} · integration/{api,llm,filesystem,runtime}
+ui/                  giao diện terminal (Bun + OpenTUI), tự bật backend
 ```
 
 ## Run
@@ -21,7 +31,7 @@ uv sync
 uv run photo-sort "<station>" "<output>"                 # dry-run
 uv run photo-sort "<station>" "<output>" --apply         # copy input->output, move
 uv run graphrun run photo-sort <in> <out> --set even_four=true --set vision_assist=true
-uv run graphrun serve --port 8765                        # HTTP API (needs graphrun[api])
+uv run graphrun serve --port 8765                        # HTTP API
 ```
 
 Every run gets a `run_id`; both artifacts land in `.output/`:
@@ -45,7 +55,7 @@ Resume an interrupted `--apply`: `--resume .output/<target>-<old_id>.jsonl` (ski
 ### Python
 
 ```python
-from graphrun import run_feature
+from application.services.run_graph import run_feature
 report = run_feature("photo-sort", "in", "out", apply=True, even_four=True)
 ```
 
@@ -60,7 +70,7 @@ uv run pytest -q        # PYTHONUTF8=1 on Windows consoles
 
 ## Add a feature
 
-New package under `apps/`, implement `graphrun.Feature.build_graph(config) -> StateGraph`,
+New package under `src/`, implement `runtime.Feature.build_graph(config) -> StateGraph`,
 register it:
 
 ```toml
@@ -68,12 +78,13 @@ register it:
 my-feature = "my_pkg.feature:MyFeature"
 ```
 
-`uv sync` → `graphrun run my-feature ...` works. Nothing in `graphrun` / `filesystem-tools` changes.
+`uv sync` → `graphrun run my-feature ...` works. Nothing in `runtime` / `infrastructure` changes.
 
 ## Notes
 
 - `photo-sort` classification is **rules-driven** (`rules/day_co.toml`) — the client
   edits the TOML, not code. Photos whose filename matches no rule are **left in place** (safe).
-- Everything that touches the FS uses `\\?\` extended paths (`fs_tools.core`) — real stations
+- Everything that touches the FS uses `\\?\` extended paths (`infrastructure/filesystem`) — real stations
   nest Vietnamese folder names past Windows' 260-char limit.
-- `agent-core` is kept but unused by `photo-sort`; it's for future agentic features.
+- `infrastructure/llm` provides the LLM/agent plumbing and is the shared
+  foundation for future agentic features.

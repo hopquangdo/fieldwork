@@ -96,7 +96,7 @@ có "Hình ảnh khác" · tên file đúng `@giờ@phút@giây@--x--` · tổng
 
 ## 5. Sửa luật phân loại (không cần lập trình)
 
-File `apps/photo-sort/rules/day_co.toml` (dây co) / `tu_dung.toml` (tự đứng).
+File `rules/day_co.toml` (dây co) / `tu_dung.toml` (tự đứng).
 
 Mỗi `[[rule]]`:
 

@@ -1,0 +1,61 @@
+# Đẩy tag v* (vd `git tag v0.1.1 && git push origin v0.1.1`):
+#   test → build bản offline → GitHub Release (photo-sort-win-x64.zip) → npm publish.
+# Cần secret NPM_TOKEN (npm → Access Tokens → Automation) trong Settings → Secrets → Actions.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write                     # tạo Release + upload zip
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version từ tag
+        id: ver
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Test
+        run: |
+          uv sync --frozen
+          uv run pytest -q
+
+      - name: Build bản offline (Python + .pyc + rules nhúng + ui.exe)
+        run: |
+          cd ui
+          bun install --frozen-lockfile
+          cd ..
+          uv run python scripts/build_dist.py
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/photo-sort-win-x64.zip \
+            --title "photo-sort $GITHUB_REF_NAME" --generate-notes
+
+      - name: npm publish
+        working-directory: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm version ${{ steps.ver.outputs.version }} --no-git-tag-version --allow-same-version
+          npm publish

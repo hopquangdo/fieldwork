@@ -1,0 +1,24 @@
+# short targets so test paths stay under Windows MAX_PATH
+extends    = "../rules/_base"
+tower_type = "day_co"
+
+[[rule]]
+match  = ["biển", "bien"]
+target = "1/bien nha tram"
+
+[[rule]]
+match  = ["mặt đứng", "mat dung"]
+target = "1/mat dung"
+
+[[rule]]
+match  = ["đốt d", "dot d"]
+target = "2/khac khe ho"
+
+[[rule]]
+match    = ["móng m", "mong m"]
+target   = "3/chuan bi {group}"
+group_by = "mong"
+
+[[rule]]
+match  = ["han rỉ", "han ri", "dị tật"]
+target = "10"

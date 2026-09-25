@@ -1,0 +1,112 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  _base.toml — CƠ CHẾ SOP dùng chung. Không dùng trực tiếp; profile cụ thể:
+#      extends = "_base"
+#  Client sửa file này (hoặc override trong profile) — KHÔNG sửa code.
+# ═══════════════════════════════════════════════════════════════════════════
+
+tower_type = "day_co"
+
+[structure]                # "phụ lục đạt chuẩn" là thế nào
+min_cong_tac  = 2
+pair_folders  = true       # số thư mục 'Công tác' phải CHẴN
+require_khac   = true
+even_images    = true      # mỗi thư mục công tác: số ảnh CHẴN
+prefer_images  = 4         # số ảnh "đẹp" mỗi thư mục (2×2 / trang phụ lục)
+trim_to_prefer = false     # false = GIỮ FULL ảnh (chỉ ép chẵn) · true = cắt về prefer_images, dư sang "khác"
+even_no_trim   = ["9."]    # khi trim_to_prefer=true: hạng mục này vẫn KHÔNG bị cắt về 4
+keep_as_is     = ["1.", "10."]
+even_skip      = ["siêu âm", "sieu am"]
+keep_singletons = false    # true = thư mục phụ lục CHỈ 1 ảnh giữ nguyên (SOP TH3), không đẩy sang "khác"
+odd_fix         = "split"  # số thư mục lẻ: "split" chia đôi thư mục đông nhất · "sibling" thêm thư mục cặp RỖNG cho thư mục cuối
+trim_earliest   = []       # hạng mục chứa chuỗi này: ép chẵn bỏ ảnh SỚM nhất (mặc định bỏ ảnh MUỘN nhất)
+odd_folders_skip = []      # hạng mục chứa chuỗi này: không ép số thư mục phụ lục CHẴN
+
+[scan]                     # lọc đầu vào trước khi kiểm kê (domain/intake.py)
+skip_nested_copies  = true # thư mục con có ≥ nested_min_overlap hạng mục trùng tên gốc = bản sao lồng của trạm → bỏ
+nested_min_overlap  = 2
+skip_imageless_dirs = true # thư mục cấp 1 không đánh số, không có ảnh (Data/res…) → không mang sang output
+dedupe_content      = true # ảnh trùng sha1 → giữ bản nông nhất, bỏ phần còn lại (ghi báo cáo)
+dedupe_scope        = "hang_muc"  # "hang_muc": chỉ gộp trùng trong CÙNG hạng mục (ảnh cố ý đặt ở 2 hạng mục giữ cả hai) · "all"
+
+[canonical]                # khớp tên thư mục con với [[subfolders]] (domain/canonical.py)
+min_score = 0.6            # Jaccard token tối thiểu để đổi tên về tên chuẩn
+unmatched = "keep"         # thư mục không khớp: "keep" giữ nguyên · "khac" dồn ảnh vào 'khác' — luôn báo "cần người xem"
+
+# Ảnh thực tế thắng khai báo TABLEBia (RULE.md §0: "TABLEBia ghi Dây co nhưng thực tế tự đứng").
+# Mọi hạng mục ĐẶC TRƯNG của loại cột khai báo đều KHÔNG có ảnh → dùng loại `otherwise`.
+[[tower_evidence]]
+declared          = "day_co"
+require_photos_in = ["lực căng", "khóa cáp", "khoá cáp"]
+otherwise         = "tu_dung"
+
+[folders]                  # nhận diện loại thư mục theo tên
+hm_prefix        = '^\s*\d+\s*[.\-_ ]\s*'
+cong_tac_markers = ["công tác", "chuẩn bị"]
+khac_markers     = ["hình ảnh khác", "hinh anh khac"]
+appendix_markers = ["công tác", "chuẩn bị", "đo kích thước", "do kich thuoc", "thao tác"]
+strip_prefixes   = [
+  "Công tác chuẩn bị ", "Công tác đo ", "Công tác kiểm tra ", "Công tác trèo cao", "Công tác ",
+  "Hình ảnh chuẩn bị ", "Hình ảnh khác ", "Hình ảnh ",
+]
+khac_name = "Hình ảnh khác"
+pair_names = ["Công tác chuẩn bị ", "Công tác đo "]   # 2 thư mục 1 cặp (scaffold / agent split)
+
+[filename]                 # quy ước tên file phụ lục
+conform        = '.+@\s*\d{1,2}@\s*\d{1,2}@\s*\d{1,2}@--[01]--\.[A-Za-z0-9]+$'
+build          = "{content}@{h}@{m:02d}@{s:02d}{seq}@--{primary}--{ext}"
+ts_pattern     = '@\s*(\d{1,2})\s*@\s*(\d{1,2})\s*@\s*(\d{1,2})'
+ts_fallback    = '(?<!\d)([01]?\d|2[0-3])[ ._-]?([0-5]\d)[ ._-]?([0-5]\d)(?!\d)'
+primary_marker = "--1--"
+primary_yes    = "1"
+primary_no     = "0"
+ext            = ".jpg"
+
+[metadata]                 # đọc TABLEBia*.txt
+table_glob = "tablebia"
+[metadata.tower_type]
+monopole = ["monopole"]
+tu_dung  = ["tự đứng", "tu dung"]
+day_co   = ["dây co", "day co"]
+[metadata.fields]
+n_dot  = 's[ốô]\s*đ[ốô]t\D*(\d+)'
+n_mong = 's[ốô]\s*m[óo]ng(?:\s*co)?\D*(\d+)'
+n_tang = 's[ốô]\s*t[ầa]ng\s*d[âa]y(?:\s*co)?\D*(\d+)'
+
+[groups]                   # nhận "nhóm" từ prefix tên file (group_by trong rule)
+[groups.mong]
+pattern = '\bm[oó]ng\s*(m?\d+)\b'
+fmt     = "M{k}"
+strip   = "mM"
+[groups.dot]
+pattern = '\b[đd][oố]t\s*d?\s*(\d+)\b'
+fmt     = "D{k}"
+[groups.tang]
+pattern = '\bt[aầ]ng\s*d[aâ]y\s*(?:co\s*)?(\d+)\b'
+fmt     = "Tầng dây {k}"
+[groups.lan]
+pattern = '\bl[aầ]n\s*(?:đo\s*)?(\d+)\b'
+fmt     = "Lần {k}"
+[groups.vitri]
+ring_pattern = '\bv[oò]ng\s*(\d+\s*[-–]\s*\d+)'
+keywords = [
+  { any = ["chân cột", "chan cot", "chân đế"], name = "chân cột" },
+  { any = ["kim thu", "thu sét", "thu set", "kim chống sét", "kim chong set"], name = "kim thu sét" },
+  { any = ["giữa cột", "giua cot"], name = "giữa cột" },
+  { any = ["đỉnh cột", "dinh cot", "đỉnh trụ"], name = "đỉnh cột" },
+  { any = ["toạ độ vòng", "tọa độ vòng", "toa do vong"], name = "toạ độ vòng" },
+  { any = ["thiết bị", "thiet bi"], name = "thiết bị treo trên cột" },
+  { any = ["phòng máy", "phong may"], name = "phòng máy" },
+]
+# Vị trí SUY RA từ số thứ tự (không ghi trong tên file): đốt k / tổng đốt (ưu tiên số đốt
+# thấy trong ảnh, thiếu thì n_dot của TABLEBia). Vị trí = (k − 0.5) / tổng, chọn bucket đầu
+# tiên có upto ≥ vị trí. 3 bucket đều nhau: 7 đốt → D1-2 / D3-5 / D6-7; 8 đốt → 3/2/3; 3 đốt → 1/1/1.
+[groups.vitri_dot]
+ordinal = "dot"
+total   = "n_dot"
+buckets = [
+  { upto = 0.3333, name = "chân cột" },
+  { upto = 0.6667, name = "giữa cột" },
+  { upto = 1.0,    name = "đỉnh cột" },
+]
+[groups.blueprint]
+pattern = '\bm[oó]ng\s*m0\b|b[aả]n\s*v[eẽ]|drawing'
