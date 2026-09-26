@@ -1,106 +1,66 @@
-# windows-computer-use-agent
+# photo-sort
 
-photo-sort — ``src/`` sắp theo tầng (mỗi tầng là một package cấp cao nhất).
+Sắp ảnh kiểm định cột BTS vào thư mục phụ lục. Chạy trên Windows 64-bit.
+
+## Cách 1: cài qua npm (khuyên dùng)
+
+Cần [Node.js](https://nodejs.org) ≥ 18.
 
 ```
-src/
-├── domain/          Photo/Move, Issue, Profile SOP (profile/), luật khớp, đặt tên, hạng mục…
-├── application/     services/run_graph.py (chạy 1 feature) · services/sort_photos.py
-├── runtime/         @node, state, context, runner, registry, feature
-├── agent/           ReAct agent · prompt · vision
-├── tools/           repair.py — tool cho agent sửa bảng assign
-├── pipeline/        pipeline.py (lắp graph) · feature.py (đăng ký photo-sort)
-├── steps/           các node của pipeline
-├── infrastructure/
-│   ├── llm/         client, factory, stream, usage, pricing, tracker, data/model_prices.json
-│   ├── filesystem/  base, operations (Windows-safe, `\?\`), image
-│   ├── persistence/ journal
-│   └── observability/ report, console
-├── config/          settings.py (LLM_* / .env) · loader.py (rules TOML)
-└── evaluation/      evaluator.py
-rules/               SOP profiles (_base / day_co / tu_dung .toml)
-tests/               unit/{domain,agent,runtime} · integration/{api,llm,filesystem,runtime}
-app/                 lớp giao tiếp: api/ (FastAPI) · cli/ (photo-sort, photo-sort-eval, photo-sort-engine) ·
-                     ui/ (Bun + OpenTUI, tự bật backend)
+npm i -g @hopquangdo/photo-sort
+photo-sort
 ```
 
-## Run
+## Cách 2: chạy trực tiếp từ repo
 
-```bash
+Cần [Git](https://git-scm.com), [uv](https://docs.astral.sh/uv/) và [Bun](https://bun.sh).
+
+```
+git clone https://github.com/hopquangdo/fieldwork.git
+cd fieldwork
 uv sync
-uv run photo-sort "<station>" "<output>"                 # copy input->output, sort (input untouched)
-uv run photo-sort-engine run photo-sort <in> <out> --set even_four=true --set vision_assist=true
-uv run photo-sort-engine serve --port 8765                        # HTTP API
+cd app/ui
+bun install
+bun run dev
 ```
 
-Every run gets a `run_id`; both artifacts land in `.output/`:
+Các lần sau chỉ cần chạy:
 
 ```
-.output/<target>-<run_id>.json      the staged report
-.output/<target>-<run_id>.jsonl     the journal (op log)
+cd fieldwork/app/ui
+bun run dev
 ```
 
-Resume an interrupted run: `--resume .output/<target>-<old_id>.jsonl` (skips done moves).
+## Dùng giao diện
 
-### HTTP API
+1. **API key:** dán key rồi bấm Enter. Chỉ làm lần đầu.
+2. **Thư mục trạm:** chọn thư mục ảnh.
+3. **Thư mục kết quả:** chọn nơi lưu kết quả.
+4. Bấm **▶ CHẠY**.
 
-| | |
-|---|---|
-| `GET /features` | list registered features |
-| `POST /features/{name}/run` | `{input, output, apply, rules?, overrides?}` → full Report JSON |
+`Tab` để chuyển ô. `Esc` để thoát.
 
-`GRAPHRUN_ALLOWED_ROOTS` (os-pathsep list) restricts which paths the API may touch.
-
-### Python
-
-```python
-from application.services.run_graph import run_feature
-report = run_feature("photo-sort", "in", "out", apply=True, even_four=True)
-```
-
-Vision / LLM (optional): put `LLM_API_KEY` / `LLM_MODEL_NAME` / `LLM_BASE_URL` in `.env`
-(OpenRouter works: `LLM_BASE_URL=https://openrouter.ai/api/v1`, `LLM_MODEL_NAME=google/gemini-2.5-flash`).
-
-## Test
-
-```bash
-uv run pytest -q        # PYTHONUTF8=1 on Windows consoles
-```
-
-## Add a feature
-
-New package under `src/`, implement `runtime.Feature.build_graph(config) -> StateGraph`,
-register it:
-
-```toml
-[project.entry-points."photo_sort.features"]
-my-feature = "my_pkg.feature:MyFeature"
-```
-
-`uv sync` → `photo-sort-engine run my-feature ...` works. Nothing in `runtime` / `infrastructure` changes.
-
-## Notes
-
-- `photo-sort` classification is **rules-driven** (`rules/day_co.toml`) — the client
-  edits the TOML, not code. Photos whose filename matches no rule are **left in place** (safe).
-- Everything that touches the FS uses `\\?\` extended paths (`infrastructure/filesystem`) — real stations
-  nest Vietnamese folder names past Windows' 260-char limit.
-- `infrastructure/llm` provides the LLM/agent plumbing and is the shared
-  foundation for future agentic features.
-
-## Phát hành (npm)
-
-Tự động bằng GitHub Actions (`.github/workflows/release.yml`):
+## Cập nhật
 
 ```
-git tag v0.1.1
-git push origin v0.1.1
+npm i -g @hopquangdo/photo-sort@latest      # cách 1
+git pull && uv sync                         # cách 2 (trong thư mục fieldwork)
 ```
 
-→ test → build `photo-sort-win-x64.zip` → GitHub Release `v0.1.1` → `npm publish` bản `0.1.1`.
+## Gỡ
 
-Cần một lần: secret `NPM_TOKEN` (npm → Access Tokens → Automation) trong
-Settings → Secrets and variables → Actions của repo `hopquangdo/fieldwork`. Repo phải **public**
-để client tải được file Release (hoặc đổi `photoSort.distUrl` sang server của bạn).
+```
+npm rm -g @hopquangdo/photo-sort            # cách 1
+```
+Cách 2: xoá thư mục `fieldwork`.
 
-Thử cài từ zip build trên máy: `PHOTO_SORT_DIST_URL=<đường dẫn zip> npm i -g ./npm`.
+## Lưu ý
+
+- **Ảnh gốc:** giữ nguyên. Kết quả là bản copy.
+- **Thư mục kết quả đã có dữ liệu:** kết quả ghi sang `(2)`, `(3)`…
+- **Không có key:** vẫn chạy được, nhưng bỏ qua bước AI.
+- **Báo cáo:** `%LOCALAPPDATA%\photo-sort\.output` (cách 1), `fieldwork\.output` (cách 2)
+- **Lỗi khi cài (cách 1):**
+  ```
+  npm rebuild -g @hopquangdo/photo-sort
+  ```

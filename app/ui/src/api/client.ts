@@ -1,6 +1,6 @@
 import type { Feature, JobSummary } from "../state/types"
 
-const API_URL = process.env.BTS_API_URL ?? "http://127.0.0.1:8765"
+import { API_URL } from "../backend"
 
 export async function listFeatures(): Promise<Feature[]> {
   const r = await fetch(`${API_URL}/features`)

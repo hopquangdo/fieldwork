@@ -6,10 +6,11 @@ import { homedir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import type { Subprocess } from "bun"
 
-const API_URL = process.env.BTS_API_URL ?? "http://127.0.0.1:8765"
 // Bản đóng gói (ui.exe): có python\python.exe cạnh exe → dùng nó; không thì chạy từ repo bằng uv.
 const BUNDLED_PY = join(dirname(process.execPath), "python", "python.exe")
 const BUNDLED = existsSync(BUNDLED_PY)
+// Cổng riêng cho bản cài (8766) và bản repo (8765) → chạy song song không "mượn" nhầm backend của nhau.
+export const API_URL = process.env.BTS_API_URL ?? `http://127.0.0.1:${BUNDLED ? 8766 : 8765}`
 const REPO = resolve(import.meta.dir, "..", "..", "..")
 /** Thư mục làm việc của backend (báo cáo .output/, log). Bản cài: %LOCALAPPDATA%\photo-sort — không mất khi npm update. */
 export const WORKDIR = BUNDLED
