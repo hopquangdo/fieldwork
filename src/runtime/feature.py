@@ -23,7 +23,7 @@ class Feature(abc.ABC):
 
     @abc.abstractmethod
     def build_graph(self, config: Config) -> StateGraph:
-        """Return an uncompiled StateGraph. graphrun compiles + runs it."""
+        """Return an uncompiled StateGraph. the runtime compiles + runs it."""
 
     def rules_path(self) -> Path | None:
         if not self.spec.default_rules:

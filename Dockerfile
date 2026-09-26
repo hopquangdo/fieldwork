@@ -5,6 +5,9 @@ COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /bin/uv
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
 COPY src ./src
+COPY app/__init__.py ./app/__init__.py
+COPY app/api ./app/api
+COPY app/cli ./app/cli
 COPY rules ./rules
 COPY scripts/build_dist.py ./scripts/
 RUN uv venv /opt/venv \
@@ -18,4 +21,4 @@ COPY --from=build /opt/venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH PYTHONUTF8=1 PYTHONUNBUFFERED=1
 WORKDIR /work
 EXPOSE 8765
-CMD ["python", "-m", "interfaces.cli.commands", "serve", "--host", "0.0.0.0", "--port", "8765"]
+CMD ["python", "-m", "app.cli.commands", "serve", "--host", "0.0.0.0", "--port", "8765"]

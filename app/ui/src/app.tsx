@@ -8,18 +8,25 @@ import { formatLog } from "./state/format"
 import type { Feature, LlmUsage, Report } from "./state/types"
 
 // Defaults — override with BTS_INPUT / BTS_OUTPUT. Bản cài (npm) để trống; chạy từ repo thì điền trạm thử.
-const REPO = resolve(import.meta.dir, "..", "..")
+const REPO = resolve(import.meta.dir, "..", "..", "..")
 const FALLBACK_INPUT = BUNDLED ? "" : join(REPO, "data", "RAW", "DBN00009_2")
 const FALLBACK_OUTPUT = BUNDLED ? "" : join(REPO, ".output", "thu-DBN00009_2")
 
 const nf = new Intl.NumberFormat("vi-VN")
 
-/** " · 12.345 in · 678 out · 1.000 cache · ~123 VND" từ section ``llm_usage`` ("" nếu không gọi LLM). */
+/** " · 12.345 in · 678 out · 1.000 cache · ~123 VND" từ section ``llm_usage`` (không gọi LLM → toàn 0). */
+/** 83_400 ms → "1 phút 23s"; < 1 phút → "12,3s". */
+function elapsed(ms: number): string {
+  const s = ms / 1000
+  if (s < 60) return `${s.toFixed(1).replace(".", ",")}s`
+  return `${Math.floor(s / 60)} phút ${Math.round(s % 60)}s`
+}
+
 function usageText(report: Report | null): string {
-  const u = report?.sections?.llm_usage as LlmUsage | undefined
-  if (!u || !u.llm_calls) return " · không dùng LLM"
-  return ` · ${nf.format(u.input_tokens)} in · ${nf.format(u.output_tokens)} out · ` +
-    `${nf.format(u.cache_read_tokens)} cache · ~${nf.format(Math.round(u.cost_vnd))} VND`
+  const u = (report?.sections?.llm_usage ?? {}) as Partial<LlmUsage>
+  const n = (x?: number) => nf.format(Math.round(x ?? 0))
+  return ` · ${n(u.input_tokens)} in · ${n(u.output_tokens)} out · ` +
+    `${n(u.cache_read_tokens)} cache · ~${n(u.cost_vnd)} VND`
 }
 
 function lineColor(l: string): string {
@@ -66,7 +73,7 @@ export function App() {
       if (f[0]) setFeature(f[0].name)
       setStatus("Tab: đổi ô  ·  chuột: bấm nút  ·  Esc: thoát")
     } catch (e) {
-      setStatus(`API offline — mở cửa sổ khác: uv run graphrun serve  (${e instanceof Error ? e.message : e})`)
+      setStatus(`API offline — mở cửa sổ khác: uv run photo-sort-engine serve  (${e instanceof Error ? e.message : e})`)
     }
   })
 
@@ -102,12 +109,12 @@ export function App() {
     setBusy(true)
     setLines([])
     setStatus("Đang chạy…")
-    push(`GHI THẬT · ${feature()}`)
+    const t0 = Date.now()
+    push(`▶ ${feature()}`)
     try {
       const id = await startRun(feature(), {
         input: input(),
         output: output(),
-        apply: true,
         overrides: {},
       })
       const stop = streamJob(id, (ev, d) => {
@@ -125,8 +132,10 @@ export function App() {
         j = await getJob(id)
       }
       stop()
-      push(j.status === "done" ? `✓ Hoàn tất${usageText(j.report)}` : `✗ ${j.error}`)
-      setStatus(j.status === "done" ? `Xong — báo cáo: ${join(WORKDIR, ".output")}` : "Lỗi")
+      push(j.status === "done" ? `✓ Hoàn tất${usageText(j.report)} · ${elapsed(Date.now() - t0)}` : `✗ ${j.error}`)
+      const outDir = j.report?.sections?.output_dir as string | undefined
+      if (j.status === "done" && outDir && outDir !== output()) push(`  thư mục kết quả đã có → ghi vào: ${outDir}`)
+      setStatus(j.status === "done" ? `Xong — kết quả: ${outDir ?? output()} · báo cáo: ${join(WORKDIR, ".output")}` : "Lỗi")
     } catch (e) {
       push(`✗ ${e instanceof Error ? e.message : String(e)}`)
       setStatus("Lỗi")
@@ -146,7 +155,7 @@ export function App() {
   return (
     <box style={{ width: dims().width, height: dims().height, flexDirection: "column", backgroundColor: "#0b1220" }}>
       <box style={{ flexDirection: "column", paddingLeft: 1, paddingRight: 1, flexShrink: 0 }}>
-        <text fg="#e2e8f0"><b>graphrun · {feature()}</b></text>
+        <text fg="#e2e8f0"><b>{feature()}</b></text>
         <text fg="#64748b">{features().find((f) => f.name === feature())?.summary ?? ""}</text>
 
         <box style={{ flexDirection: "row", marginTop: 1 }}>

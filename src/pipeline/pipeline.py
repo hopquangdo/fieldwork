@@ -21,7 +21,7 @@ Sơ đồ
     scan ─────────── đọc trạm → ctx.data:
       │                photos[] · assign={folder hiện tại: [ảnh]} · hm_dirs · meta
       ▼
-    check ────────── LIỆT KÊ mọi vi phạm SOP của ĐẦU VÀO THÔ → ctx.data["issues"]
+    check ────────── LIỆT KÊ mọi vi phạm SOP của ĐẦU VÀO THÔ → state(ctx).issues
       │                + report["vấn đề đầu vào"]. Hàm THUẦN: không sửa, không rẽ nhánh.
       ▼
     classify ─────── fixer cho  unclassified / misplaced  (rule-match: mỗi ảnh → 1
@@ -47,9 +47,10 @@ Sơ đồ
       │ còn issue &         │
       │ vòng < max ─────────┤
       ▼                     │
-    agent_repair ───────────┘   ReAct agent (llm) sửa ctx.data["assign"] bằng
-      │  soft=True                tool; chỉ mutate in-memory. Tự bỏ qua nếu hết issue /
-      │                           không có LLM_API_KEY. Bounded ``max_repair_iters``.
+    agent_repair ───────────┘   ReAct agent (llm) sửa state(ctx).assign bằng tool;
+      │  soft=True                chỉ mutate in-memory. Lượt đầu còn RÀ SOÁT ảnh ở 'khác'
+      │                           (tool look = vision theo hạng mục, [agent] trong rules).
+      │                           Tự bỏ qua nếu không có việc / không có LLM_API_KEY.
       │
       │ hết issue / hết vòng
       ▼
@@ -59,9 +60,9 @@ Sơ đồ
       │                fail → ctx.report.abort() → apply/delete_empty tự no-op (@node).
       ▼
     apply ────────── thực thi Move (safe_move: không đè, journal → resume được).
-      │                dry-run / aborted → bỏ qua.
+      │                aborted → bỏ qua.
       ▼
-    delete_empty ─── xoá thư mục rỗng ngoài kế hoạch. dry-run → bỏ qua.
+    delete_empty ─── xoá thư mục rỗng ngoài kế hoạch.
       ▼
      END
 
@@ -71,7 +72,7 @@ Bất biến thiết kế
 2. Mỗi fixer nằm trên chain tuyến tính → chạy **đúng 1 lần**, và tự bỏ qua khi
    không có issue thuộc loại nó xử lý ⇒ vòng lặp LUÔN dừng.
 3. ``dot_range`` / ``scaffold`` / ``even_four`` re-derive điều kiện từ ``assign``
-   HIỆN TẠI (không tin ``ctx.data["issues"]`` của ``check`` vì state đổi sau classify).
+   HIỆN TẠI (không tin ``state(ctx).issues`` của ``check`` vì state đổi sau classify).
 4. Invariant CỨNG (bảo toàn ảnh) là node ``verify`` RIÊNG, chạy sau mọi fixer,
    không bao giờ giao cho fixer.
 5. Deterministic trước (classify … even_four), LLM (``agent_repair``) sau cùng + có cap.
@@ -80,9 +81,11 @@ from __future__ import annotations
 
 from langgraph.graph import END, START, StateGraph
 
+from domain.profile import Profile
 from runtime import GraphState
 
 import steps
+from domain.state import state
 
 #: số vòng validate ↔ agent_repair tối đa (chốt chặn, không phải tuỳ biến)
 _MAX_REPAIR_ITERS = 3
@@ -133,9 +136,12 @@ def build_graph(config=None) -> StateGraph:
     # chưa hết _MAX_REPAIR_ITERS vòng, ngược lại đi thẳng plan.
     g.add_edge("agent_repair", "validate")
 
-    def loop_or_plan(state) -> str:
-        d = state["ctx"].data
-        done = not d.get("issues") or d.get("repair_iters", 0) >= _MAX_REPAIR_ITERS
+    def loop_or_plan(graph_state) -> str:
+        ctx = graph_state["ctx"]
+        s = state(ctx)
+        # lượt đầu còn việc RÀ SOÁT ảnh ('khác') dù cấu trúc đã hợp lệ → vẫn gọi agent 1 lần
+        review = Profile.of(ctx).agent.get("review", False) and not s.reviewed
+        done = (not s.issues and not review) or s.repair_iters >= _MAX_REPAIR_ITERS
         return "plan" if done else "agent_repair"
 
     g.add_conditional_edges("validate", loop_or_plan,

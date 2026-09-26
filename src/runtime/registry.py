@@ -4,7 +4,7 @@ from importlib.metadata import entry_points
 
 from runtime.feature import Feature
 
-GROUP = "graphrun.features"
+GROUP = "photo_sort.features"
 
 
 def load_features() -> dict[str, Feature]:

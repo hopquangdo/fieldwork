@@ -28,7 +28,7 @@ uv run photo-sort "<thư mục trạm>" "<thư mục kết quả>"
 - **`<thư mục trạm>`** = thư mục chứa các thư mục hạng mục đánh số (`1.…`, `2.…`) + thư mục `Data…`.
   **Không bị sửa** — tool chỉ đọc.
 - **`<thư mục kết quả>`** = nơi ghi bản đã sắp (tool copy trạm sang đây rồi sắp tại chỗ).
-- Mặc định **ghi thật**. Muốn xem trước không ghi: thêm `--dry-run`.
+- Luôn **ghi thật** vào thư mục kết quả (bản copy — ảnh gốc không bị đụng). Thư mục kết quả đã có dữ liệu thì tự ghi sang `<tên> (2)`, `(3)`…
 
 Tool chạy **MỘT luồng cố định** (xem `graph.py`): `scan → check → classify → vision →
 dot_range → scaffold → even_four → (validate ↔ agent_repair) → plan → verify → apply →
@@ -46,7 +46,6 @@ Sau khi chạy, xem file report: `.output/<tên trạm>-<mã>.json`
 
 | Cờ | Ý nghĩa |
 |---|---|
-| `--dry-run` | chỉ tính kế hoạch, không ghi |
 | `--compact` | log gọn — bỏ dòng chi tiết + từng lệnh AI, chỉ giữ tóm tắt mỗi node |
 | `--rules <file.toml>` | dùng bộ luật khác (mặc định tự chọn `day_co` / `tu_dung` theo TABLEBia) |
 | `--resume <.output/…-….jsonl>` | chạy lại sau khi bị ngắt — bỏ qua việc đã làm |
@@ -57,7 +56,7 @@ Bật AI: chỉ cần có `.env` với `LLM_API_KEY` — `vision` + `agent_repai
 ### Nhiều trạm 1 lượt
 
 ```
-uv run graphrun run photo-sort "<workspace nhiều trạm>" "<output>" --set workspace=true
+uv run photo-sort-engine run photo-sort "<workspace nhiều trạm>" "<output>" --set workspace=true
 ```
 
 ---

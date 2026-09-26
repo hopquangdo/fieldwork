@@ -7,6 +7,7 @@ from runtime import RunContext, run
 from domain.profile import Profile
 from domain.naming import parse
 from pipeline.feature import PhotoSortFeature
+from domain.state import state
 
 FEATURE = PhotoSortFeature()
 _PROF = Profile.load(Path(__file__).resolve().parents[3] / "rules" / "_base.toml")
@@ -17,11 +18,9 @@ def _parse(name: str):
     return parse(name, ts_pattern=_FN.ts_pattern, primary_marker=_FN.primary_marker)
 
 
-def _run(inp: Path, out: Path, rules: Path, *, apply: bool) -> Report:
+def _run(inp: Path, out: Path, rules: Path) -> Report:
     cfg = Config.load(rules)
-    ctx = RunContext(inp, out, cfg,
-                     Report(feature="photo-sort", target=inp.name, dry_run=not apply),
-                     dry_run=not apply)
+    ctx = RunContext(inp, out, cfg, Report(feature="photo-sort", target=inp.name))
     return run(FEATURE, ctx)
 
 
@@ -32,27 +31,24 @@ def test_naming():
     assert _parse("@8@05@00@--0--.jpg").prefix == ""
 
 
-def test_registered_as_graphrun_feature():
+def test_registered_as_feature():
     from runtime import load_features
     assert "photo-sort" in load_features()
 
 
-def test_dry_run_writes_nothing(station, tmp_path, rules_file):
-    out = tmp_path / "out"
-    rep = _run(station, out, rules_file, apply=False)
+def test_runs_full_chain(station, tmp_path, rules_file):
+    rep = _run(station, tmp_path / "out", rules_file)
     assert not rep.aborted
     names = [s.name for s in rep.stages]
     assert names[:4] == ["scan", "normalize", "check", "classify"]  # reconcile chain always starts here
     assert names[-2:] == ["apply", "delete_empty"]
     assert {"scaffold", "even_four", "validate", "plan", "verify"} <= set(names)
-    assert [s.status for s in rep.stages if s.name == "apply"] == ["skipped"]
     assert rep.sections["images_before"] == rep.sections["images_after"] == 13
-    assert not out.exists()
 
 
 def test_apply_moves_by_rules(station, tmp_path, rules_file):
     out = tmp_path / "out"
-    rep = _run(station, out, rules_file, apply=True)
+    rep = _run(station, out, rules_file)
     assert not rep.aborted, rep.errors
     work = out / station.name
 
@@ -64,7 +60,7 @@ def test_apply_moves_by_rules(station, tmp_path, rules_file):
 
 def test_input_untouched(station, tmp_path, rules_file):
     before = len(list(station.rglob("*.jpg")))
-    _run(station, tmp_path / "out", rules_file, apply=True)
+    _run(station, tmp_path / "out", rules_file)
     assert len(list(station.rglob("*.jpg"))) == before
 
 
@@ -73,11 +69,11 @@ def test_conservation_catches_name_clash(station, tmp_path, rules_file):
     from steps.conservation import conservation
 
     ctx = RunContext(station, tmp_path / "o", Config.load(rules_file),
-                     Report(feature="x"), dry_run=True)
-    ctx.data["photos"] = [Photo("a/x.jpg", "", False), Photo("b/x.jpg", "", False)]
-    ctx.data["assign"] = {"z": ["a/x.jpg", "b/x.jpg"]}   # both land as z/x.jpg
-    ctx.data["moves"] = []
-    ctx.data["landing"] = [("z", "x.jpg"), ("z", "x.jpg")]
+                     Report(feature="x"))
+    state(ctx).photos = [Photo("a/x.jpg", "", False), Photo("b/x.jpg", "", False)]
+    state(ctx).assign = {"z": ["a/x.jpg", "b/x.jpg"]}   # both land as z/x.jpg
+    state(ctx).moves = []
+    state(ctx).landing = [("z", "x.jpg"), ("z", "x.jpg")]
     conservation.__wrapped__(ctx)
     assert ctx.report.aborted and "trùng" in ctx.report.errors[0]
 
@@ -85,7 +81,7 @@ def test_conservation_catches_name_clash(station, tmp_path, rules_file):
 def test_input_may_be_image_dir_with_sibling_data(station, tmp_path, rules_file):
     """Trỏ thẳng vào thư mục ảnh: TABLEBia nằm ở thư mục Data ANH EM vẫn phải được đọc."""
     img = station / station.name
-    rep = _run(img, tmp_path / "out", rules_file, apply=False)
+    rep = _run(img, tmp_path / "out", rules_file)
     assert not rep.aborted, rep.errors
     assert rep.sections["meta"]["source"] == "TABLEBia.txt"
 
@@ -93,7 +89,7 @@ def test_input_may_be_image_dir_with_sibling_data(station, tmp_path, rules_file)
 def test_output_has_images_only(station, tmp_path, rules_file):
     """Output chỉ chứa thư mục ảnh — không mang Data hay tầng bọc trùng tên."""
     out = tmp_path / "out"
-    _run(station, out, rules_file, apply=True)
+    _run(station, out, rules_file)
     assert [p.name for p in out.iterdir()] == [station.name]
     assert not any(p.suffix == ".txt" for p in out.rglob("*"))
     assert not (out / station.name / station.name).exists()
@@ -102,7 +98,7 @@ def test_output_has_images_only(station, tmp_path, rules_file):
 def test_aborts_when_tower_type_unknown(station, tmp_path, rules_file):
     """Không có TABLEBia → dừng rõ ràng, KHÔNG âm thầm mặc định dây co."""
     (station / "DataNAN00145 ok" / "TABLEBia.txt").unlink()
-    rep = _run(station, tmp_path / "out", rules_file, apply=True)
+    rep = _run(station, tmp_path / "out", rules_file)
     assert rep.aborted
     assert any("loại cột" in e for e in rep.errors)
 
@@ -142,3 +138,17 @@ def test_evaluation_discover_pairs(tmp_path):
     (tmp_path / "gt" / "ST1_gt").mkdir(parents=True)
     (tmp_path / "gt" / "NOPE_gt").mkdir()                 # không có input tương ứng → bỏ
     assert [p[0] for p in discover_pairs(tmp_path / "data", tmp_path / "gt")] == ["ST1"]
+
+
+def test_free_dir_adds_suffix_when_output_has_data(tmp_path):
+    from application.services.run_graph import free_dir
+
+    out = tmp_path / "ket qua"
+    assert free_dir(out) == out                       # chưa có
+    out.mkdir()
+    assert free_dir(out) == out                       # rỗng → dùng luôn
+    (out / "a.jpg").write_bytes(b"x")
+    assert free_dir(out) == tmp_path / "ket qua (2)"
+    (tmp_path / "ket qua (2)").mkdir()
+    (tmp_path / "ket qua (2)" / "b.jpg").write_bytes(b"x")
+    assert free_dir(out) == tmp_path / "ket qua (3)"

@@ -2,7 +2,7 @@
 
     photo-sort       -> cli_main    (chạy 1 lần, in ra console)
     photo-sort-eval  -> eval_main   (so kết quả với ground truth)
-    graphrun         -> graphrun_main (list / run / serve — engine chung; `python -m cli serve`)
+    photo-sort-engine -> engine_main (list / run / serve; `python -m app.cli.commands serve`)
 
 Toàn bộ logic nằm ở ``core``; file này chỉ
 phân tích tham số dòng lệnh rồi gọi vào đó.
@@ -20,6 +20,7 @@ from runtime.registry import load_features
 from application.services.run_graph import run_feature
 
 from application.services.sort_photos import sort_photos
+from domain import sections as S
 
 
 # ── photo-sort ────────────────────────────────────────────────────────────
@@ -30,7 +31,6 @@ def cli_main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("input", help="thư mục trạm đầu vào")
     ap.add_argument("output", help="thư mục kết quả")
-    ap.add_argument("--apply", action="store_true", help="thực thi (mặc định: dry-run)")
     ap.add_argument("--rules", help="đường dẫn file rules .toml")
     ap.add_argument("--report-dir", default=".output")
     ap.add_argument("--resume", metavar="JOURNAL", help="dùng lại .jsonl của lần chạy trước")
@@ -46,7 +46,7 @@ def cli_main(argv: list[str] | None = None) -> int:
 
     result = sort_photos(
         args.input, args.output,
-        apply=args.apply, rules=args.rules,
+        rules=args.rules,
         report_dir=args.report_dir, resume=args.resume,
         on_progress=(lambda msg: renderer("step", msg)) if renderer else None,
     )
@@ -54,14 +54,15 @@ def cli_main(argv: list[str] | None = None) -> int:
     if args.json:
         d = asdict(result)
         d["report_path"] = str(result.report_path)
+        d["output_dir"] = str(result.output_dir)
         print(json.dumps(d, ensure_ascii=False, indent=2))
     else:
         for row in result.input_issues:
             print(f"  · {row}")
         print(
             f"\n{result.moves} move · {result.images_before}→{result.images_after} ảnh"
-            f" · {'APPLIED' if result.applied else 'DRY-RUN'}"
         )
+        print(f"output: {result.output_dir}")
         print(f"report: {result.report_path}")
         if result.aborted:
             print("\nABORTED:")
@@ -110,13 +111,13 @@ def eval_main(argv: list[str] | None = None) -> int:
     return 0 if worst >= args.min_accuracy else 1
 
 
-# ── graphrun ──────────────────────────────────────────────────────────────
+# ── photo-sort-engine ──────────────────────────────────────────────────────────────
 def _kv(pairs: list[str]) -> dict:
     return dict(p.split("=", 1) for p in pairs)
 
 
-def graphrun_main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="graphrun")
+def engine_main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(prog="photo-sort-engine")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("list", help="list registered features")
@@ -125,7 +126,6 @@ def graphrun_main(argv: list[str] | None = None) -> int:
     r.add_argument("feature")
     r.add_argument("input")
     r.add_argument("output")
-    r.add_argument("--dry-run", action="store_true", help="plan only, don't write (default: apply)")
     r.add_argument("--rules", help="path to a rules .toml")
     r.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
     r.add_argument("--report-dir", default=".output")
@@ -147,12 +147,12 @@ def graphrun_main(argv: list[str] | None = None) -> int:
     if args.cmd == "serve":
         import uvicorn
 
-        uvicorn.run("interfaces.api.app:app", host=args.host, port=args.port)
+        uvicorn.run("app.api.app:app", host=args.host, port=args.port)
         return 0
 
     report = run_feature(
         args.feature, args.input, args.output,
-        apply=not args.dry_run, rules=args.rules, resume=args.resume,
+        rules=args.rules, resume=args.resume,
         report_dir=args.report_dir,
         on_log=None if args.json else ConsoleRenderer(compact=args.compact),
         **_kv(args.set),
@@ -161,7 +161,7 @@ def graphrun_main(argv: list[str] | None = None) -> int:
     if args.json:
         print(json.dumps(asdict(report), ensure_ascii=False, indent=2))
     else:
-        report.render_sections(skip=("agent_repair · nhật ký tool",))
+        report.render_sections(skip=(S.AGENT_LOG,))
         base = Path(args.report_dir) / f"{Path(args.input).name}-{report.run_id}"
         print(f"\nreport:  {base}.json")
         print(f"journal: {base}.jsonl")
@@ -169,4 +169,4 @@ def graphrun_main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(graphrun_main())
+    sys.exit(engine_main())

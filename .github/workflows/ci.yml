@@ -20,8 +20,22 @@ jobs:
       - run: uv sync --frozen
       - run: uv run pytest -q
 
+      # Cổng chất lượng: so với đáp án trên bộ trạm thu nhỏ (scripts/make_eval_fixture.py).
+      # Không có LLM trong CI → đo phần cơ chế theo rules. Trạm kém nhất < ngưỡng → đỏ.
+      - name: Eval gate
+        shell: bash
+        env:
+          LLM_API_KEY: ""
+        run: |
+          if [ -d tests/fixtures/eval/raw ]; then
+            uv run photo-sort-eval --auto tests/fixtures/eval/raw tests/fixtures/eval/gt \
+              --work .output/_ci_eval --min-accuracy 0.88
+          else
+            echo "bỏ qua: chưa có tests/fixtures/eval (tạo bằng scripts/make_eval_fixture.py)"
+          fi
+
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-        working-directory: ui
+        working-directory: app/ui
       - run: bunx tsc --noEmit
-        working-directory: ui
+        working-directory: app/ui

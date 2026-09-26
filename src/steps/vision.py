@@ -16,6 +16,8 @@ from agent.vision import ask_vision, cache_key
 from infrastructure import llm
 from domain.profile import Profile
 from domain.folders import reverse_assign
+from domain import sections as S
+from domain.state import state
 
 
 def _candidate_folders(prof: Profile) -> set[str]:
@@ -51,10 +53,10 @@ def vision(ctx) -> None:
     bp_folder = prof.vision.get("blueprint_folder")
     limit = int(prof.vision.get("max", 120))
 
-    unplaced = {p.path for p in ctx.data.get("unmatched", [])}
+    unplaced = {p.path for p in state(ctx).unmatched}
     recheck = list(prof.vision.get("recheck_in", []))
-    where0 = reverse_assign(ctx.data["assign"])
-    targets = [p for p in ctx.data["photos"]
+    where0 = reverse_assign(state(ctx).assign)
+    targets = [p for p in state(ctx).photos
                if _needs_eyes(p, where0, unplaced, nm, recheck)][:limit]
     if not targets:
         st.detail = "không có ảnh cần mở"
@@ -62,7 +64,7 @@ def vision(ctx) -> None:
 
     valid = _candidate_folders(prof)
     folders = list(prof.vision.get("candidates") or sorted(valid))
-    root = Path(ctx.data["root"])
+    root = Path(state(ctx).root)
     cache_path = Path(ctx.journal.path).parent / "vision-cache.json"
     cache: dict = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
 
@@ -71,7 +73,8 @@ def vision(ctx) -> None:
         try:
             try:
                 answers = ask_vision([p.path for p in todo], root=root, folders=folders,
-                                     config=llm.tracked(ctx, llm.model()))
+                                     config=llm.tracked(ctx, llm.model()),
+                                     blueprint_hint=prof.vision.get("blueprint_hint", ""))
             finally:
                 llm.publish_usage(ctx)
             for p in todo:
@@ -86,7 +89,7 @@ def vision(ctx) -> None:
             st.status = "skipped"
             st.detail = f"LLM lỗi: {type(exc).__name__} — dùng cache/heuristic"
 
-    assign = ctx.data["assign"]
+    assign = state(ctx).assign
     where = reverse_assign(assign)
     accepted = review = blueprints = 0
     for p in targets:
@@ -98,7 +101,7 @@ def vision(ctx) -> None:
             continue
         if folder != bp_folder and (folder not in valid or ans["conf"] < min_conf):
             review += 1
-            ctx.report.sections.setdefault("cần người xem", []).append(
+            ctx.report.sections.setdefault(S.NEEDS_REVIEW, []).append(
                 f"{p.path}  → {ans['folder']} (conf {ans['conf']:.2f})"
             )
             continue

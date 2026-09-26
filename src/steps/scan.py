@@ -1,6 +1,6 @@
 """Ingest: nạp một trạm vào ``ctx`` để các bước sau xử lý.
 
-Định vị thư mục ảnh, copy nó (chỉ nó) sang output khi ghi thật, kiểm kê từng ảnh và
+Định vị thư mục ảnh, copy nó (chỉ nó) sang output, kiểm kê từng ảnh và
 đọc số liệu TABLEBia. Sau bước này ``ctx.data`` có:
 
     root          thư mục chứa các hạng mục đánh số
@@ -26,13 +26,12 @@ from domain.intake import survey
 from domain.metadata import read_meta, refine_tower_type
 from domain.naming import parse
 from domain.station import hang_muc_dirs, image_root, is_broken_image
+from domain import sections as S
+from domain.state import state
 
 
 def _copy_station(ctx, src_root):
-    """Bản làm việc trong output (ghi thật) hoặc chính thư mục ảnh (dry-run).
-    Chỉ copy thư mục ảnh — không mang Data hay tầng bọc theo."""
-    if ctx.dry_run:
-        return src_root
+    """Bản làm việc trong output — chỉ copy thư mục ảnh, không mang Data hay tầng bọc theo."""
     work = ctx.output / src_root.name
     if ctx.journal.done("__copied__"):
         ctx.report.stages[-1].detail = "resume (copy skipped) · "
@@ -46,11 +45,10 @@ def _copy_station(ctx, src_root):
 
 @node("scan")
 def scan(ctx) -> None:
-    if not ctx.dry_run:
-        i, o = ctx.input.resolve(), ctx.output.resolve()
-        if o == i or i in o.parents or o in i.parents:
-            ctx.report.abort("output không được trùng / nằm trong / chứa input")
-            return
+    i, o = ctx.input.resolve(), ctx.output.resolve()
+    if o == i or i in o.parents or o in i.parents:
+        ctx.report.abort("output không được trùng / nằm trong / chứa input")
+        return
 
     prof = Profile.of(ctx)
     fn = prof.filename
@@ -58,11 +56,9 @@ def scan(ctx) -> None:
     intake = survey(src_root, prof.scan)
     work = root = _copy_station(ctx, src_root)
     dropped = {d for d, _ in intake.duplicates}
-    if not ctx.dry_run:
-        _drop_from_copy(work, intake.skip_dirs, dropped)
-    ctx.data["work"] = work
-    ctx.data["root"] = root
-    ctx.data["hm_dirs"] = hang_muc_dirs(root)
+    _drop_from_copy(work, intake.skip_dirs, dropped)
+    state(ctx).root = root
+    state(ctx).hm_dirs = hang_muc_dirs(root)
     _report_intake(ctx, intake)
 
     photos: list[Photo] = []
@@ -77,14 +73,14 @@ def scan(ctx) -> None:
         c = parse(p.name, ts_pattern=fn.ts_pattern, primary_marker=fn.primary_marker)
         photos.append(Photo(path=rel, prefix=c.prefix, is_primary=c.is_primary))
 
-    ctx.data["photos"] = photos
-    ctx.data["assign"] = _raw_assign(photos, prof)
-    ctx.data["existing_dirs"] = {
+    state(ctx).photos = photos
+    state(ctx).assign = _raw_assign(photos, prof)
+    state(ctx).existing_dirs = {
         rel for d in walk_dirs(root)
         if not intake.skipped(rel := str(d.relative_to(root)).replace("\\", "/"))
     }
     if bad:
-        ctx.report.sections["ảnh lỗi / rỗng (bỏ qua)"] = bad
+        ctx.report.sections[S.BAD_IMAGES] = bad
 
     meta = read_meta(ctx.input, prof.metadata)
     refined, why = refine_tower_type(src_root, meta.tower_type, prof.tower_evidence,
@@ -92,12 +88,12 @@ def scan(ctx) -> None:
     if refined != meta.tower_type:
         meta.warnings.append(f"TABLEBia = '{meta.tower_type}' nhưng ảnh cho thấy '{refined}' ({why})")
         meta.tower_type = refined
-    ctx.data["meta"] = meta
-    if meta.tower_type != (prof.tower_type or "day_co"):
+    state(ctx).meta = meta
+    if meta.tower_type != prof.tower_type:
         meta.warnings.append(
             f"TABLEBia = '{meta.tower_type}' nhưng profile = '{prof.tower_type}' — kiểm tra lại."
         )
-    ctx.report.sections["meta"] = {
+    ctx.report.sections[S.META] = {
         "tower_type": meta.tower_type, "n_dot": meta.n_dot,
         "n_mong": meta.n_mong, "n_tang": meta.n_tang, "source": meta.source,
     }
@@ -108,7 +104,7 @@ def scan(ctx) -> None:
             "(cạnh hoặc trong thư mục trạm) rồi chạy lại"
         )
         return
-    ctx.report.sections["images_before"] = len(photos)
+    ctx.report.sections[S.IMAGES_BEFORE] = len(photos)
     ctx.report.stages[-1].detail += f"{len(photos)} ảnh · {meta.tower_type}"
 
     ctx.emit("step", f"cột {meta.tower_type} · {meta.n_dot} đốt · {meta.n_mong} móng "
@@ -133,10 +129,10 @@ def _drop_from_copy(work, skip_dirs: list[str], dropped: set[str]) -> None:
 
 def _report_intake(ctx, intake) -> None:
     if intake.skip_dirs:
-        ctx.report.sections["thư mục bỏ qua (bản lồng / không có ảnh)"] = list(intake.skip_dirs)
+        ctx.report.sections[S.SKIPPED_DIRS] = list(intake.skip_dirs)
         ctx.emit("step", f"bỏ qua {len(intake.skip_dirs)} thư mục: {', '.join(intake.skip_dirs[:3])}")
     if intake.duplicates:
-        ctx.report.sections["ảnh trùng nội dung (bỏ qua)"] = [
+        ctx.report.sections[S.DUPLICATES] = [
             f"{d}  (trùng {k})" for d, k in intake.duplicates
         ]
         ctx.emit("step", f"bỏ qua {len(intake.duplicates)} ảnh trùng nội dung")

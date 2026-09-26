@@ -1,4 +1,4 @@
-/** Tự bật backend (``uv run graphrun serve``) nếu API chưa chạy; tắt theo UI khi thoát.
+/** Tự bật backend (``uv run photo-sort-engine serve``) nếu API chưa chạy; tắt theo UI khi thoát.
  *  Log backend ghi vào ``.output/backend.log`` (terminal đã dành cho UI).
  *  API key nhập trên UI truyền vào backend qua biến môi trường (env thắng .env). */
 import { existsSync, mkdirSync, openSync } from "node:fs"
@@ -10,7 +10,7 @@ const API_URL = process.env.BTS_API_URL ?? "http://127.0.0.1:8765"
 // Bản đóng gói (ui.exe): có python\python.exe cạnh exe → dùng nó; không thì chạy từ repo bằng uv.
 const BUNDLED_PY = join(dirname(process.execPath), "python", "python.exe")
 const BUNDLED = existsSync(BUNDLED_PY)
-const REPO = resolve(import.meta.dir, "..", "..")
+const REPO = resolve(import.meta.dir, "..", "..", "..")
 /** Thư mục làm việc của backend (báo cáo .output/, log). Bản cài: %LOCALAPPDATA%\photo-sort — không mất khi npm update. */
 export const WORKDIR = BUNDLED
   ? join(process.env.LOCALAPPDATA || join(homedir(), ".local", "share"), "photo-sort")
@@ -60,7 +60,7 @@ export async function ensureBackend(apiKey?: string): Promise<void> {
 
   console.log(`Đang bật backend ${API_URL} ... (log: ${join(logDir, "backend.log")})`)
   const serve = ["serve", "--host", url.hostname, "--port", url.port || "8765"]
-  const cmd = BUNDLED ? [BUNDLED_PY, "-m", "interfaces.cli.commands", ...serve] : ["uv", "run", "graphrun", ...serve]
+  const cmd = BUNDLED ? [BUNDLED_PY, "-m", "app.cli.commands", ...serve] : ["uv", "run", "photo-sort-engine", ...serve]
   const env: Record<string, string | undefined> = { ...process.env, PYTHONUTF8: "1" }
   if (apiKey) {
     env.LLM_API_KEY = apiKey

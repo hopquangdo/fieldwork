@@ -1,4 +1,4 @@
-"""Đăng ký ``photo-sort`` với graphrun.
+"""Đăng ký feature ``photo-sort`` với engine (``runtime.registry``).
 
 Chọn profile SOP đúng loại cột (đọc nhanh TABLEBia trước khi Config được nạp) rồi
 giao việc dựng graph cho :mod:`pipeline.graph`.
@@ -31,18 +31,18 @@ class PhotoSortFeature(Feature):
     spec = FeatureSpec(
         name="photo-sort",
         summary="Sắp ảnh kiểm định cột BTS vào cấu trúc thư mục phụ lục",
-        # rules/ nằm ở gốc repo, ngoài package; thực tế rules_for() luôn chọn file.
-        default_rules="../../rules/day_co.toml",
+        # không có default_rules: rules_for() luôn chọn profile theo TABLEBia + ảnh thực tế
     )
 
     def rules_for(self, input_path: Path) -> Path:
-        """Đọc TABLEBia (pattern lấy từ _base) để chọn profile day_co / tu_dung, rồi cho
-        ẢNH THỰC TẾ bác khai báo theo ``[[tower_evidence]]`` của _base."""
+        """Đọc TABLEBia (pattern lấy từ _base) để chọn profile ``<loại cột>.toml``, rồi cho
+        ẢNH THỰC TẾ bác khai báo theo ``[[tower_evidence]]`` của _base. Không xác định được
+        → ``[metadata].default_tower_type``."""
         base = Profile.load(_BASE)
         tt = peek_tower_type(Path(input_path), base.metadata)
         tt, _ = refine_tower_type(image_root(Path(input_path)), tt, base.tower_evidence)
         cand = _RULES_DIR / f"{tt}.toml"
-        return cand if tt and toml_exists(cand) else _RULES_DIR / "day_co.toml"
+        return cand if tt and toml_exists(cand) else _RULES_DIR / f"{base.metadata.default_tower_type}.toml"
 
     def build_graph(self, config) -> StateGraph:
         return build_graph(config)

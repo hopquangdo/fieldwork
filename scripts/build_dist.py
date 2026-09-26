@@ -89,6 +89,7 @@ def strip_sources(site: Path) -> None:
     """Chỉ giữ .pyc (đặt cạnh, kiểu legacy) cho code của mình."""
     ours = [site / p.name for p in (REPO / "src").iterdir()
             if p.name != "__pycache__" and (p.is_dir() or p.suffix == ".py")]
+    ours.append(site / "app")
     n = 0
     for root in ours:
         if not root.exists():
@@ -106,7 +107,7 @@ def strip_sources(site: Path) -> None:
 
 
 def build_ui(out: Path = OUT) -> None:
-    ui = REPO / "ui"
+    ui = REPO / "app" / "ui"
     if not (ui / "node_modules").exists():
         run("bun", "install", cwd=ui)
     run("bun", "build", "--compile", "src/index.tsx", "--outfile", str(out / "ui.exe"), cwd=ui)

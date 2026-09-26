@@ -11,6 +11,7 @@ from runtime import node
 from domain.profile import Profile
 from domain.dot_grouping import DotGrouper
 from steps.validate import dot_range_pending
+from domain.state import state
 
 
 @node("dot_range")
@@ -23,7 +24,7 @@ def dot_range(ctx) -> None:
         return
 
     grouper = DotGrouper(prof.names())
-    assign: dict[str, list[str]] = ctx.data["assign"]
+    assign: dict[str, list[str]] = state(ctx).assign
     done = sum(1 for spec in specs if grouper.apply(assign, spec) is not None)
 
     ctx.report.stages[-1].detail = f"đặt tên thư mục theo đốt: {done} hạng mục"

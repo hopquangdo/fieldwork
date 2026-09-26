@@ -15,12 +15,14 @@ from runtime import node
 
 from domain.profile import Profile
 from domain.folders import hm_of, leaf_of
+from domain import sections as S
+from domain.state import state
 
 
 @node("verify")
 def conservation(ctx) -> None:
-    photos = {p.path for p in ctx.data["photos"]}
-    assign = ctx.data["assign"]
+    photos = {p.path for p in state(ctx).photos}
+    assign = state(ctx).assign
     assigned = [p for paths in assign.values() for p in paths]
 
     dup = [p for p, c in Counter(assigned).items() if c > 1]
@@ -32,7 +34,7 @@ def conservation(ctx) -> None:
         ctx.report.abort(f"assignment lệch: mất {len(lost)}, thừa {len(extra)} — {sorted(lost | extra)[:3]}")
         return
 
-    clash = [k for k, c in Counter(ctx.data["landing"]).items() if c > 1]
+    clash = [k for k, c in Counter(state(ctx).landing).items() if c > 1]
     if clash:
         ctx.report.abort(f"{len(clash)} cặp (thư mục, tên file) trùng: {clash[:3]}")
         return
@@ -53,10 +55,10 @@ def conservation(ctx) -> None:
             khac_only[hm] = khac_only.get(hm, 0) + len(imgs)
     gaps = sorted(hm for hm in set(by_hm) | set(khac_only) if by_hm.get(hm, 0) == 0)
     if gaps:
-        ctx.report.sections["hạng mục thiếu ảnh (cần nhặt bù)"] = [
+        ctx.report.sections[S.SHORT_OF_PHOTOS] = [
             f"{hm}  (chỉ có {khac_only.get(hm, 0)} ảnh trong 'Hình ảnh khác')" for hm in gaps
         ]
         for hm in gaps:
             ctx.emit("step", f"⚠ THIẾU ảnh công tác: {hm}")
 
-    ctx.report.stages[-1].detail = f"{len(photos)} ảnh · {len(ctx.data['moves'])} move hợp lệ"
+    ctx.report.stages[-1].detail = f"{len(photos)} ảnh · {len(state(ctx).moves)} move hợp lệ"

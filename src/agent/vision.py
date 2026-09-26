@@ -17,9 +17,8 @@ from infrastructure.llm.client import model
 
 PROMPT = (
     "Phân loại ảnh kỹ thuật hiện trường. Với mỗi ảnh (kèm đường dẫn hiện tại): chọn "
-    "'folder' đúng nhất trong danh sách 'folders' (null nếu không hợp), kèm 'confidence' 0-1. "
-    "Đặt is_blueprint=true nếu ảnh là BẢN VẼ TAY chụp trên giấy (nền trắng, nét bút vẽ "
-    "sơ đồ / mặt cắt / kích thước)."
+    "'folder' đúng nhất trong danh sách 'folders' (null nếu không hợp), kèm 'confidence' 0-1 "
+    "và 'description' — 1 câu ngắn tả ảnh chụp gì (đối tượng, vị trí, thiết bị đo)."
 )
 
 
@@ -28,6 +27,7 @@ class VisionAnswer(BaseModel):
     folder: str | None = None
     is_blueprint: bool = False
     confidence: float = 0.0
+    description: str = ""
 
 
 class _Batch(BaseModel):
@@ -41,11 +41,20 @@ def cache_key(path: Path) -> str:
 
 
 def ask_vision(rel_paths: list[str], *, root: Path, folders: list[str],
-               config: dict | None = None) -> dict[str, VisionAnswer]:
+               config: dict | None = None, blueprint_hint: str = "",
+               context: str = "") -> dict[str, VisionAnswer]:
     """``{đường dẫn tương đối: VisionAnswer}`` cho các ảnh trong ``rel_paths``.
+
+    ``blueprint_hint`` (``[vision]`` của rules): ảnh thế nào thì là bản vẽ → ``is_blueprint``.
+    ``context``: gợi ý thêm (vd tên hạng mục đang xét).
     ``config`` chuyển thẳng cho ``invoke`` (vd callbacks đếm token)."""
     llm = model().with_structured_output(_Batch)
-    content: list = [{"type": "text", "text": PROMPT + "\nfolders:\n- " + "\n- ".join(folders)}]
+    prompt = PROMPT
+    if blueprint_hint:
+        prompt += f" Đặt is_blueprint=true nếu {blueprint_hint}."
+    if context:
+        prompt += f"\nNgữ cảnh: {context}"
+    content: list = [{"type": "text", "text": prompt + "\nfolders:\n- " + "\n- ".join(folders)}]
     for rel in rel_paths:
         data, mime = load_image_b64(root / rel, max_edge=1024)
         content.append({"type": "text", "text": rel})

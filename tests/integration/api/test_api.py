@@ -4,7 +4,7 @@ pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient
 
-from interfaces.api import create_app
+from app.api import create_app
 
 client = TestClient(create_app())
 
@@ -21,20 +21,21 @@ def test_run_unknown_feature_404():
 
 
 def test_job_lifecycle(tmp_path):
-    (tmp_path / "1.a").mkdir(parents=True)
+    inp = tmp_path / "in"
+    (inp / "1.a").mkdir(parents=True)
     _img = pytest.importorskip("PIL.Image")
     import io
 
     buf = io.BytesIO()
     _img.new("RGB", (2, 2), "white").save(buf, format="JPEG")
-    (tmp_path / "1.a" / "x.jpg").write_bytes(buf.getvalue())
-    (tmp_path / "DataX ok").mkdir()
-    (tmp_path / "DataX ok" / "TABLEBia.txt").write_text("Loại cột: Dây co\n", encoding="utf-8")
+    (inp / "1.a" / "x.jpg").write_bytes(buf.getvalue())
+    (inp / "DataX ok").mkdir()
+    (inp / "DataX ok" / "TABLEBia.txt").write_text("Loại cột: Dây co\n", encoding="utf-8")
 
     r = client.post(
         "/features/photo-sort/run?wait=true",
-        json={"input": str(tmp_path), "output": str(tmp_path / "out"),
-              "apply": False, "overrides": {"vision_assist": False}},
+        json={"input": str(inp), "output": str(tmp_path / "out"),
+              "overrides": {"vision_assist": False}},
     )
     body = r.json()
     assert r.status_code == 200 and body["status"] in ("done", "error")

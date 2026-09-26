@@ -192,15 +192,28 @@ class Names:
         pat = (self._g.get("blueprint") or {}).get("pattern")
         return bool(pat and re.search(pat, prefix, re.I))
 
-    def trail_regex(self) -> re.Pattern | None:
-        """Regex giữ đuôi nhóm ('M2' / 'D3' / 'Tầng dây 1' / 'Lần 1') khi bóc tên."""
-        pats: list[str] = []
-        for k in ("mong", "dot", "tang", "lan"):
-            fmt = (self._g.get(k) or {}).get("fmt", "")
+    def _trail_groups(self) -> list[tuple[re.Pattern, str]]:
+        """``[groups.*]`` có ``trail = true``: (regex khớp đuôi theo ``fmt``, ``trail_label``)."""
+        out = []
+        for g in self._g.values():
+            fmt = g.get("fmt", "") if isinstance(g, dict) and g.get("trail") else ""
             if "{k}" in fmt:
                 a, _, b = fmt.partition("{k}")
-                pats.append(re.escape(a) + r"\d+" + re.escape(b))
+                out.append((re.compile(re.escape(a) + r"(\d+)" + re.escape(b)), g.get("trail_label", fmt)))
+        return out
+
+    def trail_regex(self) -> re.Pattern | None:
+        """Regex giữ đuôi nhóm (vd 'M2' / 'D3' / 'Tầng dây 1') khi bóc tên — nhóm nào giữ
+        đuôi do rules quyết (``trail = true``)."""
+        pats = [p.pattern for p, _ in self._trail_groups()]
         return re.compile(r"\s+((?:" + "|".join(pats) + r"))$") if pats else None
+
+    def trail_label(self, trail: str) -> str:
+        """Cách ghi đuôi trong tên file, theo ``trail_label`` của nhóm (vd 'M2' → 'Móng M2')."""
+        for pat, label in self._trail_groups():
+            if m := pat.fullmatch(trail):
+                return label.format(k=m[1])
+        return trail
 
     # -- thư mục 'khác' của 1 hạng mục -------------------------------
     def khac_in_assign(self, assign: dict, hm: str) -> str | None:

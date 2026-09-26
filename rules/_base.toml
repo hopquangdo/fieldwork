@@ -39,6 +39,16 @@ declared          = "day_co"
 require_photos_in = ["lực căng", "khóa cáp", "khoá cáp"]
 otherwise         = "tu_dung"
 
+[vision]                   # dùng chung cho bước vision + tool `look` của agent
+blueprint_hint = "ảnh là BẢN VẼ TAY chụp trên giấy (nền trắng, nét bút vẽ sơ đồ / mặt cắt / kích thước)"
+
+[agent]                    # agent cuối vòng reconcile (steps/agent_repair.py)
+review    = false          # rà soát ảnh ở "khác" bằng tool look. Mặc định TẮT: eval cho thấy "khác" trong
+                           # đáp án = ảnh DƯ, không phải ảnh sai nội dung → nhìn ảnh không giúp (94,2% → 93,0%)
+min_conf  = 0.7            # chỉ chuyển ảnh khi vision model gợi ý thư mục cụ thể với độ tin cậy ≥ ngưỡng này
+max_look  = 40             # ngân sách số ảnh agent được mở xem mỗi lượt chạy (chi phí LLM)
+max_steps = 60             # giới hạn số bước (tool call) của agent
+
 [folders]                  # nhận diện loại thư mục theo tên
 hm_prefix        = '^\s*\d+\s*[.\-_ ]\s*'
 cong_tac_markers = ["công tác", "chuẩn bị"]
@@ -63,6 +73,7 @@ ext            = ".jpg"
 
 [metadata]                 # đọc TABLEBia*.txt
 table_glob = "tablebia"
+default_tower_type = "day_co"   # TABLEBia thiếu / không ghi rõ loại cột → dùng profile này
 [metadata.tower_type]
 monopole = ["monopole"]
 tu_dung  = ["tự đứng", "tu dung"]
@@ -77,15 +88,20 @@ n_tang = 's[ốô]\s*t[ầa]ng\s*d[âa]y(?:\s*co)?\D*(\d+)'
 pattern = '\bm[oó]ng\s*(m?\d+)\b'
 fmt     = "M{k}"
 strip   = "mM"
+trail   = true            # giữ đuôi nhóm khi đặt tên file (thư mục "... M2" → tên "... Móng M2")
+trail_label = "Móng M{k}"
 [groups.dot]
 pattern = '\b[đd][oố]t\s*d?\s*(\d+)\b'
 fmt     = "D{k}"
+trail   = true
 [groups.tang]
 pattern = '\bt[aầ]ng\s*d[aâ]y\s*(?:co\s*)?(\d+)\b'
 fmt     = "Tầng dây {k}"
+trail   = true
 [groups.lan]
 pattern = '\bl[aầ]n\s*(?:đo\s*)?(\d+)\b'
 fmt     = "Lần {k}"
+trail   = true
 [groups.vitri]
 ring_pattern = '\bv[oò]ng\s*(\d+\s*[-–]\s*\d+)'
 keywords = [

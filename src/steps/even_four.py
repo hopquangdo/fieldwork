@@ -14,6 +14,7 @@ from domain.profile import Profile
 from domain.folders import hm_of, leaf_of
 from domain.naming import parse
 from steps.validate import issues_now
+from domain.state import state
 
 
 def _trim(imgs: list[str], cap: int, *, info: dict | None = None,
@@ -58,11 +59,11 @@ def even_four(ctx) -> None:
     nm = prof.names()
     prefer = prof.structure.prefer_images
     trim = prof.structure.trim_to_prefer
-    assign = ctx.data["assign"]
-    existing = ctx.data.get("existing_dirs", set())
+    assign = state(ctx).assign
+    existing = state(ctx).existing_dirs
     fn = prof.filename
     info = {}
-    for p in ctx.data.get("photos", []):
+    for p in state(ctx).photos:
         c = parse(p.name, ts_pattern=fn.ts_pattern, primary_marker=fn.primary_marker)
         info[p.path] = (p.prefix, p.is_primary, c.ts)
     moved = 0

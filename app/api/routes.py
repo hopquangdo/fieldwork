@@ -1,4 +1,4 @@
-"""Route handlers for the graphrun HTTP interface.
+"""Route handlers for the photo-sort HTTP interface.
 
     GET  /features                       list registered features
     POST /features/{name}/run            start a job -> {job_id}   (?wait=true for sync)
@@ -14,8 +14,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from interfaces.api.jobs import STORE, sse_stream, start
-from interfaces.api.schemas import FeatureInfo, RunRequest
+from app.api.jobs import STORE, sse_stream, start
+from app.api.schemas import FeatureInfo, RunRequest
 from runtime.registry import load_features
 
 router = APIRouter()
@@ -70,7 +70,7 @@ def run(name: str, req: RunRequest, wait: bool = Query(False)) -> dict:
         raise HTTPException(404, f"unknown feature {name!r}")
     params = dict(
         input=_check(req.input), output=_check(req.output),
-        apply=req.apply, rules=req.rules, **req.overrides,
+        rules=req.rules, **req.overrides,
     )
     job = STORE.create(name, params)
     start(job)

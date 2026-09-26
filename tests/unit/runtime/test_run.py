@@ -21,7 +21,7 @@ def guard(ctx):
 
 @node("write")
 def write(ctx):
-    ctx.report.sections["written"] = [] if ctx.dry_run else ctx.data["items"]
+    ctx.report.sections["written"] = ctx.data["items"]
 
 
 class Demo(Feature):
@@ -40,8 +40,8 @@ class Demo(Feature):
         return g
 
 
-def _ctx(tmp_path: Path, cfg: dict, dry=True) -> RunContext:
-    return RunContext(tmp_path, tmp_path, Config(cfg), Report(feature="demo"), dry_run=dry)
+def _ctx(tmp_path: Path, cfg: dict) -> RunContext:
+    return RunContext(tmp_path, tmp_path, Config(cfg), Report(feature="demo"))
 
 
 def test_happy_path(tmp_path):

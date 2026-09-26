@@ -42,6 +42,7 @@ class Profile:
     subfolders: list[dict] = field(default_factory=list)     # [[subfolders]] — tên thư mục con chuẩn
     canonical: dict = field(default_factory=dict)            # [canonical] — ngưỡng/khớp tên chuẩn
     scan: dict = field(default_factory=dict)                 # [scan] — lọc ảnh trùng / bản lồng
+    agent: dict = field(default_factory=dict)                # [agent] — rà soát ảnh bằng agent + look
     tower_evidence: list[dict] = field(default_factory=list) # [[tower_evidence]] — ảnh bác TABLEBia
     raw: dict[str, Any] = field(repr=False, default_factory=dict)
 
@@ -88,6 +89,7 @@ class Profile:
             subfolders=list(data.get("subfolders") or []),
             canonical=dict(data.get("canonical") or {}),
             scan=dict(data.get("scan") or {}),
+            agent=dict(data.get("agent") or {}),
             tower_evidence=list(data.get("tower_evidence") or []),
             raw=data,
         )
@@ -149,6 +151,7 @@ def _metadata(m: dict) -> Metadata:
     return Metadata(
         table_glob=str(need(m, "table_glob", "metadata")),
         tower_type={k: tuple(str(x) for x in v) for k, v in tt.items()},
+        default_tower_type=str(need(m, "default_tower_type", "metadata")),
         fields={k: str(v) for k, v in fld.items()},
     )
 

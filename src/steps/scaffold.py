@@ -20,6 +20,8 @@ from domain.canonical import CanonicalNamer, natural_key
 from domain.folders import hm_of, leaf_of
 from domain.singleton_pairing import SingletonPairer
 from steps.validate import issues_now
+from domain import sections as S
+from domain.state import state
 
 
 @node("scaffold")
@@ -34,8 +36,8 @@ def scaffold(ctx) -> None:
     nm = prof.names()
     canon = CanonicalNamer(prof)
     pairer = SingletonPairer(nm, allowed=canon.allowed)
-    assign: dict[str, list[str]] = ctx.data["assign"]
-    existing: set[str] = ctx.data.get("existing_dirs", set())
+    assign: dict[str, list[str]] = state(ctx).assign
+    existing: set[str] = state(ctx).existing_dirs
 
     hms = sorted({hm_of(k) for k in assign if k[:1].isdigit()})
     created = 0
@@ -89,7 +91,7 @@ def scaffold(ctx) -> None:
                 la, lb = nm.pair(nm.pair_core(leaf_of(biggest)))
                 if not (canon.allowed(hm, la) and canon.allowed(hm, lb)):
                     # tên cặp không có trong [[subfolders]] — không tự chế, để người xem
-                    ctx.report.sections.setdefault("cần người xem", []).append(
+                    ctx.report.sections.setdefault(S.NEEDS_REVIEW, []).append(
                         f"{hm}: {len(ct)} thư mục phụ lục (lẻ) — không có tên chuẩn để tách cặp")
                     continue
                 imgs = assign.pop(biggest)

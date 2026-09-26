@@ -39,9 +39,9 @@ jobs:
 
       - name: Build bản offline (Python + .pyc + rules nhúng + ui.exe)
         run: |
-          cd ui
+          cd app/ui
           bun install --frozen-lockfile
-          cd ..
+          cd ../..
           uv run python scripts/build_dist.py
 
       - name: GitHub Release
@@ -49,8 +49,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/photo-sort-win-x64.zip \
-            --title "photo-sort $GITHUB_REF_NAME" --generate-notes
+          # chạy lại (re-run) khi Release đã có → chỉ upload đè zip
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/photo-sort-win-x64.zip --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/photo-sort-win-x64.zip \
+              --title "photo-sort $GITHUB_REF_NAME" --generate-notes
+          fi
 
       - name: npm publish
         working-directory: npm

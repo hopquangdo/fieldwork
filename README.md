@@ -16,22 +16,21 @@ src/
 │   ├── filesystem/  base, operations (Windows-safe, `\?\`), image
 │   ├── persistence/ journal
 │   └── observability/ report, console
-├── interfaces/      api/ (FastAPI) · cli/commands.py (photo-sort, photo-sort-eval, graphrun)
-├── config/          settings.py, llm.py (.env) · loader.py (rules TOML)
+├── config/          settings.py (LLM_* / .env) · loader.py (rules TOML)
 └── evaluation/      evaluator.py
 rules/               SOP profiles (_base / day_co / tu_dung .toml)
 tests/               unit/{domain,agent,runtime} · integration/{api,llm,filesystem,runtime}
-ui/                  giao diện terminal (Bun + OpenTUI), tự bật backend
+app/                 lớp giao tiếp: api/ (FastAPI) · cli/ (photo-sort, photo-sort-eval, photo-sort-engine) ·
+                     ui/ (Bun + OpenTUI, tự bật backend)
 ```
 
 ## Run
 
 ```bash
 uv sync
-uv run photo-sort "<station>" "<output>"                 # dry-run
-uv run photo-sort "<station>" "<output>" --apply         # copy input->output, move
-uv run graphrun run photo-sort <in> <out> --set even_four=true --set vision_assist=true
-uv run graphrun serve --port 8765                        # HTTP API
+uv run photo-sort "<station>" "<output>"                 # copy input->output, sort (input untouched)
+uv run photo-sort-engine run photo-sort <in> <out> --set even_four=true --set vision_assist=true
+uv run photo-sort-engine serve --port 8765                        # HTTP API
 ```
 
 Every run gets a `run_id`; both artifacts land in `.output/`:
@@ -41,7 +40,7 @@ Every run gets a `run_id`; both artifacts land in `.output/`:
 .output/<target>-<run_id>.jsonl     the journal (op log)
 ```
 
-Resume an interrupted `--apply`: `--resume .output/<target>-<old_id>.jsonl` (skips done moves).
+Resume an interrupted run: `--resume .output/<target>-<old_id>.jsonl` (skips done moves).
 
 ### HTTP API
 
@@ -74,11 +73,11 @@ New package under `src/`, implement `runtime.Feature.build_graph(config) -> Stat
 register it:
 
 ```toml
-[project.entry-points."graphrun.features"]
+[project.entry-points."photo_sort.features"]
 my-feature = "my_pkg.feature:MyFeature"
 ```
 
-`uv sync` → `graphrun run my-feature ...` works. Nothing in `runtime` / `infrastructure` changes.
+`uv sync` → `photo-sort-engine run my-feature ...` works. Nothing in `runtime` / `infrastructure` changes.
 
 ## Notes
 

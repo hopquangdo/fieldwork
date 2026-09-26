@@ -12,6 +12,8 @@ from runtime import node
 
 from domain.profile import Profile
 from domain.canonical import CanonicalNamer
+from domain import sections as S
+from domain.state import state
 
 
 @node("canonicalize")
@@ -24,11 +26,11 @@ def canonicalize(ctx) -> None:
         return
 
     nm = prof.names()
-    out = CanonicalNamer(prof).apply(ctx.data["assign"], kept=nm.is_kept)
+    out = CanonicalNamer(prof).apply(state(ctx).assign, kept=nm.is_kept)
     if out["renamed"]:
-        ctx.report.sections["đổi tên thư mục chuẩn"] = out["renamed"]
+        ctx.report.sections[S.RENAMED_DIRS] = out["renamed"]
     if out["review"]:
-        ctx.report.sections.setdefault("cần người xem", []).extend(out["review"])
+        ctx.report.sections.setdefault(S.NEEDS_REVIEW, []).extend(out["review"])
         for r in out["review"][:5]:
             ctx.emit("step", f"⚠ {r}")
     st.detail = f"đổi tên {len(out['renamed'])} thư mục · {len(out['review'])} cần người xem"

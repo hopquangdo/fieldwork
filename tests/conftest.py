@@ -5,6 +5,16 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _no_real_llm(monkeypatch, tmp_path):
+    """Không test nào được gọi LLM thật (tốn tiền, chậm, không lặp lại được): xoá key khỏi
+    môi trường và chạy từ thư mục tạm để không đọc ``.env`` ở gốc repo. Test cần LLM thì
+    dùng model giả / bản ghi (xem tests/unit/agent)."""
+    for k in ("LLM_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+        monkeypatch.setenv(k, "")
+    monkeypatch.chdir(tmp_path)
+
+
 import itertools
 
 _SEQ = itertools.count(1)   # mỗi ảnh fixture một nội dung riêng — scan loại ảnh trùng sha1

@@ -71,4 +71,5 @@ class Metadata:
     """Đọc TABLEBia*.txt — ``[metadata]``."""
     table_glob: str
     tower_type: dict[str, tuple[str, ...]]
+    default_tower_type: str       # loại cột giả định khi TABLEBia không có / không ghi rõ
     fields: dict[str, str]

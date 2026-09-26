@@ -10,6 +10,7 @@ from tools.repair import AssignEditor, build_tools
 from domain.issues import Issue
 from domain.profile import Profile
 from steps.agent_repair import agent_repair
+from domain.state import state
 
 _RULES = Path(__file__).resolve().parents[3] / "rules"
 _NM = Profile.load(_RULES / "_base.toml").names()
@@ -17,9 +18,9 @@ _NM = Profile.load(_RULES / "_base.toml").names()
 
 def _ctx(tmp_path: Path, assign: dict) -> RunContext:
     c = RunContext(tmp_path, tmp_path / "o", Config.load(Path(__file__).resolve().parents[2] / "rules_test.toml"),
-                   Report(feature="x"), dry_run=True)
-    c.data["assign"] = assign
-    c.data["issues"] = [Issue("3.X", "odd_images", "3 ảnh", "3.X/Công tác chuẩn bị M1")]
+                   Report(feature="x"))
+    state(c).assign = assign
+    state(c).issues = [Issue("3.X", "odd_images", "3 ảnh", "3.X/Công tác chuẩn bị M1")]
     return c
 
 

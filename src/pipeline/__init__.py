@@ -1,4 +1,4 @@
-"""Lắp ráp graph + đăng ký feature cho graphrun."""
+"""Lắp ráp graph + đăng ký feature photo-sort."""
 from pipeline.feature import PhotoSortFeature
 from pipeline.pipeline import build_graph
 

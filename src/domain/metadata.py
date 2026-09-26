@@ -20,7 +20,7 @@ list_dir = ListDirTool()
 
 @dataclass
 class StationMeta:
-    tower_type: str = "day_co"
+    tower_type: str = ""            # rỗng tới khi read_meta điền (TABLEBia hoặc mặc định của rules)
     n_dot: int = 0
     n_mong: int = 0
     n_tang: int = 0
@@ -71,10 +71,10 @@ def find_table_bia(root: Path, glob: str = "tablebia") -> Path | None:
 
 def read_meta(root: Path, cfg: Metadata) -> StationMeta:
     """``root`` = thư mục trạm (chứa Data…)."""
-    meta = StationMeta()
+    meta = StationMeta(tower_type=cfg.default_tower_type)
     bia = find_table_bia(root, cfg.table_glob)
     if bia is None:
-        meta.warnings.append("Không thấy TABLEBia.txt — giả định cột dây co.")
+        meta.warnings.append(f"Không thấy TABLEBia.txt — giả định loại cột '{cfg.default_tower_type}'.")
         return meta
 
     text = longpath(bia).read_text(encoding="utf-8", errors="replace")
@@ -84,7 +84,7 @@ def read_meta(root: Path, cfg: Metadata) -> StationMeta:
         meta.tower_type = tt
         meta.resolved = True
     else:
-        meta.warnings.append("TABLEBia.txt không ghi rõ loại cột — giả định dây co.")
+        meta.warnings.append(f"TABLEBia.txt không ghi rõ loại cột — giả định '{cfg.default_tower_type}'.")
     for attr, pat in cfg.fields.items():
         m = re.search(pat, text, re.I)
         if m and hasattr(meta, attr):

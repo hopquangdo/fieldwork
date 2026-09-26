@@ -1,5 +1,5 @@
-// Turn a graphrun `on_log` (channel, message) event into display lines,
-// mirroring graphrun.runtime.console.ConsoleRenderer. Returns [] to drop.
+// Turn a backend `on_log` (channel, message) event into display lines,
+// mirroring infrastructure.observability.console.ConsoleRenderer. Returns [] to drop.
 //
 // compact=true collapses the noise: keeps node start/end + agent round header
 // + first 3 issues + agent errors; drops per-tool-call trace and `step` lines.

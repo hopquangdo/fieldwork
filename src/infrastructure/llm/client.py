@@ -6,41 +6,41 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Awaitable, TypeVar
+from typing import TYPE_CHECKING, Any, Awaitable, TypeVar
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 
-from agent.agent import Agent
-from config.llm import settings
+from config.settings import get_settings, require_llm
 from infrastructure.llm.factory import get_chat_model
 from infrastructure.llm.tracker import UsageTracker
 from infrastructure.llm.usage import Usage
 from infrastructure.llm.utils import model_name_of
+from domain import sections as S
+
+if TYPE_CHECKING:
+    from agent.agent import Agent
 
 _T = TypeVar("_T")
 
 
 def available() -> bool:
     """Có LLM_API_KEY để gọi model không."""
-    try:
-        settings()
-    except RuntimeError:
-        return False
-    return True
+    return bool(get_settings().llm_api_key.strip())
 
 
 def model(**overrides: Any) -> BaseChatModel:
     """Chat model từ .env (LLM_MODEL_NAME / LLM_API_KEY / LLM_BASE_URL)."""
-    s = settings()
+    s = require_llm()
     kwargs: dict[str, Any] = {"timeout": s.llm_timeout, "max_retries": s.llm_max_retries}
     kwargs.update(overrides)
     return get_chat_model(**kwargs)
 
 
-def agent(tools: list[BaseTool], *, system: str = "", **overrides: Any) -> Agent:
+def agent(tools: list[BaseTool], *, system: str = "", **overrides: Any) -> "Agent":
     """ReAct agent (:class:`agent.agent.Agent`) với timeout/retry theo Settings."""
-    s = settings()
+    from agent.agent import Agent   # muộn: agent.agent import infrastructure.llm.factory
+    s = require_llm()
     kwargs: dict[str, Any] = {"timeout": s.llm_timeout, "max_retries": s.llm_max_retries}
     kwargs.update(overrides)
     return Agent.create(tools, system=system, **kwargs)
@@ -63,13 +63,13 @@ def tracked(ctx, chat_model: BaseChatModel) -> dict:
 
 def publish_usage(ctx) -> None:
     """Ghi usage hiện tại vào báo cáo (section ``llm_usage``) — UI đọc để hiện token + VND."""
-    ctx.report.sections["llm_usage"] = usage(ctx).to_dict()
+    ctx.report.sections[S.LLM_USAGE] = usage(ctx).to_dict()
 
 
 def run_sync(coro: Awaitable[_T]) -> _T:
     """Chạy 1 coroutine (vd ``Agent.run(...)``) từ code ĐỒNG BỘ (node graph là hàm sync).
 
-    Node graph luôn chạy ngoài event loop (CLI / worker thread của graphrun serve) nên bình
+    Node graph luôn chạy ngoài event loop (CLI / worker thread của API server) nên bình
     thường chỉ cần ``asyncio.run``; nếu lỡ có event loop đang chạy sẵn (gọi từ context
     async) thì lùi về 1 thread riêng để không đụng loop đó.
     """

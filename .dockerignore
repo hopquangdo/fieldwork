@@ -8,7 +8,7 @@ data
 dist
 docs
 example
-ui
+app/ui
 tests
 *.json
 .env

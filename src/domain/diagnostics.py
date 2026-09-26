@@ -17,7 +17,6 @@ from domain.folders import hm_of, leaf_of
 from domain.matching import RuleMatcher
 
 _D_TAIL = re.compile(r"\bD(\d+)\s*$")
-_CAP = 8   # số issue "ảnh" tối đa ghi ra trước khi gộp "… +N"
 
 
 def per_dot(assign: dict, hm_prefix: str, names: Names) -> set[int]:
@@ -65,13 +64,10 @@ def classification_issues(assign: dict[str, list[str]], photos, hm_dirs: dict, p
     matcher = RuleMatcher(prof.rules, hm_dirs, nm, nm.ordinal_totals(p.prefix for p in photos))
     where = {p: f for f, ps in assign.items() for p in ps}
     issues: list[Issue] = []
-    n_unc = n_mis = 0
     for photo in photos:
         cur = where.get(photo.path, "")
         if "/" not in cur:                                   # chưa vào thư mục con nào
-            n_unc += 1
-            if n_unc <= _CAP:
-                issues.append(Issue("(ảnh)", "unclassified", f"{photo.name}  (ở '{cur or '/'}')"))
+            issues.append(Issue("(ảnh)", "unclassified", f"{photo.name}  (ở '{cur or '/'}')"))
             continue
         target, soft = matcher.match(photo, current_folder=cur)
         # Ảnh trong 'khác' vẫn được thử khớp rule — chỉ giữ nguyên khi không có rule
@@ -80,14 +76,8 @@ def classification_issues(assign: dict[str, list[str]], photos, hm_dirs: dict, p
         if nm.is_khac(leaf_of(cur)) and soft:
             continue
         if target and "/" in target and target != cur:
-            n_mis += 1
-            if n_mis <= _CAP:
-                issues.append(Issue(hm_of(target), "misplaced",
-                                    f"{photo.name}: {cur} → {target}{' (lỏng)' if soft else ''}"))
-    if n_unc > _CAP:
-        issues.append(Issue("(ảnh)", "unclassified", f"… +{n_unc - _CAP} ảnh nữa"))
-    if n_mis > _CAP:
-        issues.append(Issue("(ảnh)", "misplaced", f"… +{n_mis - _CAP} ảnh nữa"))
+            issues.append(Issue(hm_of(target), "misplaced",
+                                f"{photo.name}: {cur} → {target}{' (lỏng)' if soft else ''}"))
     return issues
 
 

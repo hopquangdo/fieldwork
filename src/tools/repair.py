@@ -1,5 +1,5 @@
-"""5 tool an toàn cho agent sửa cấu trúc: ``inspect / reassign / split_folder /
-new_empty_pair / finish``.
+"""Tool an toàn cho agent: ``inspect / reassign / swap / split_folder / new_empty_pair /
+check / finish`` (+ ``look`` ở :mod:`tools.look` khi có ngân sách xem ảnh).
 
 Mọi thao tác chỉ mutate bảng ``assign`` (dict trong bộ nhớ) và luôn giữ ảnh trong
 cùng một hạng mục — conservation ``verify`` vẫn HARD-gate sau đó.
@@ -7,6 +7,8 @@ cùng một hạng mục — conservation ``verify`` vẫn HARD-gate sau đó.
 from __future__ import annotations
 
 import json
+
+from typing import Callable
 
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, Field
@@ -78,11 +80,29 @@ class AssignEditor:
         dst = self._find_folder(to_folder, hm_of(src))
         if hm_of(dst) != hm_of(src):
             return "thư mục đích khác hạng mục — từ chối"
+        if dst not in self.assign:
+            return ("thư mục đích chưa có — chỉ chuyển vào thư mục ĐÃ CÓ (xem inspect); "
+                    "cần thư mục mới thì dùng split_folder / new_empty_pair")
         if dst == src:
             return "ảnh đã ở đó"
         self.assign[src].remove(p)
         self.assign.setdefault(dst, []).append(p)
         return f"chuyển '{leaf_of(p)}' : {leaf_of(src)} -> {leaf_of(dst)}"
+
+    def swap(self, photo_a: str, photo_b: str) -> str:
+        """Đổi chỗ 2 ảnh cùng hạng mục — sửa phân loại mà KHÔNG đổi số ảnh mỗi thư mục."""
+        a, b = self._find_photo(photo_a), self._find_photo(photo_b)
+        if not a or not b:
+            return "không tìm thấy ảnh"
+        where = reverse_assign(self.assign)
+        fa, fb = where[a], where[b]
+        if hm_of(fa) != hm_of(fb):
+            return "2 ảnh khác hạng mục — từ chối"
+        if fa == fb:
+            return "2 ảnh đang cùng thư mục"
+        self.assign[fa][self.assign[fa].index(a)] = b
+        self.assign[fb][self.assign[fb].index(b)] = a
+        return f"đổi chỗ '{leaf_of(a)}' ({leaf_of(fa)}) ↔ '{leaf_of(b)}' ({leaf_of(fb)})"
 
     def split_folder(self, folder: str) -> str:
         f = self._find_folder(folder, hm_of(folder))
@@ -115,6 +135,20 @@ class _Reassign(BaseModel):
     to_folder: str = Field(..., description="Thư mục đích, CÙNG hạng mục với ảnh")
 
 
+class _Swap(BaseModel):
+    photo_a: str = Field(..., description="Tên ảnh thứ nhất")
+    photo_b: str = Field(..., description="Tên ảnh thứ hai, CÙNG hạng mục")
+
+
+class _Look(BaseModel):
+    hang_muc: str = Field(..., description="Prefix hạng mục chứa các ảnh")
+    photos: list[str] = Field(..., description="Tên các ảnh cần xem (lấy từ inspect)")
+
+
+class _None(BaseModel):
+    pass
+
+
 class _Folder(BaseModel):
     folder: str = Field(..., description="Đường dẫn thư mục cần tách đôi")
 
@@ -128,22 +162,22 @@ class _Done(BaseModel):
     note: str = ""
 
 
-def _clip(s: str, n: int) -> str:
-    s = " ".join(str(s).split())
-    return s if len(s) <= n else s[:n] + " …"
+def build_tools(editor: AssignEditor, *, log: list[str], emit, iteration: int,
+                check: Callable[[], list[str]] = lambda: [],
+                look: Callable[[str, list[str]], str] | None = None) -> list[BaseTool]:
+    """Bọc các phép sửa của ``editor`` thành StructuredTool có ghi log + stream sự kiện.
 
-
-def build_tools(editor: AssignEditor, *, log: list[str], emit, iteration: int) -> list[BaseTool]:
-    """Bọc các phép sửa của ``editor`` thành StructuredTool có ghi log + stream sự kiện."""
+    ``check()`` → danh sách vi phạm cấu trúc HIỆN TẠI (rỗng = hợp lệ); ``finish`` từ chối
+    khi còn vi phạm. ``look`` (tuỳ chọn) → tool xem ảnh bằng vision model."""
 
     def logged(name: str, fn):
         def wrapper(**kw):
             sig = ", ".join(f"{k}={v!r}" for k, v in kw.items())
-            emit("tool", f"{name}({_clip(sig, 140)})")
+            emit("tool", f"{name}({sig})")
             try:
                 out = fn(**kw)
                 log.append(f"[{iteration}] {name}({sig}) -> {out}")
-                emit("result", _clip(out, 160))
+                emit("result", out)
                 return out
             except Exception as e:  # noqa: BLE001
                 log.append(f"[{iteration}] {name}({sig}) -> LỖI: {type(e).__name__}: {e}")
@@ -151,16 +185,37 @@ def build_tools(editor: AssignEditor, *, log: list[str], emit, iteration: int) -
                 return f"LỖI: {e}"
         return wrapper
 
+    def check_tool() -> str:
+        left = check()
+        return "cấu trúc hợp lệ" if not left else "còn vi phạm:\n" + "\n".join(f"- {x}" for x in left)
+
+    refused = [0]
+
     def finish(note: str = "") -> str:
+        left = check()
+        if left and refused[0]:
+            return f"dừng dù còn {len(left)} vi phạm (không sửa được bằng tool). {note}".strip()
+        if left:
+            refused[0] += 1
+            return ("CHƯA thể kết thúc — còn vi phạm cấu trúc:\n" + "\n".join(f"- {x}" for x in left)
+                    + "\nSửa tiếp; nếu không sửa được bằng tool thì gọi finish lần nữa để dừng.")
         return f"hoàn tất. {note}".strip()
 
     specs = [
         ("inspect", editor.inspect, _HM, "Xem các thư mục + số ảnh của 1 hạng mục."),
         ("reassign", editor.reassign, _Reassign, "Chuyển 1 ảnh sang thư mục khác cùng hạng mục."),
-        ("split_folder", editor.split_folder, _Folder, "Tách 1 thư mục thành cặp 'chuẩn bị' + 'đo'."),
-        ("new_empty_pair", editor.new_empty_pair, _Pair, "Tạo 1 cặp thư mục rỗng."),
-        ("finish", finish, _Done, "Gọi khi đã sửa xong tất cả issue."),
+        ("swap", editor.swap, _Swap, "Đổi chỗ 2 ảnh cùng hạng mục (giữ nguyên số ảnh mỗi thư mục)."),
+        ("check", check_tool, _None, "Kiểm tra cấu trúc hiện tại (số thư mục cặp, số ảnh chẵn, thư mục khác)."),
+        ("split_folder", editor.split_folder, _Folder,
+         "Tách 1 thư mục thành cặp 'chuẩn bị' + 'đo' — THÊM ĐÚNG 1 thư mục: dùng cho lỗi odd_folders (số thư mục lẻ)."),
+        ("new_empty_pair", editor.new_empty_pair, _Pair,
+         "Tạo 1 cặp thư mục rỗng — THÊM 2 thư mục (không đổi tính chẵn/lẻ): chỉ dùng cho lỗi too_few."),
+        ("finish", finish, _Done, "Gọi khi đã xong. Từ chối nếu cấu trúc còn vi phạm."),
     ]
+    if look is not None:
+        specs.insert(1, ("look", look, _Look,
+                         "Mở ảnh bằng vision model: gợi ý thư mục con đúng trong hạng mục + độ tin cậy + mô tả. "
+                         "Có ngân sách số ảnh — chỉ xem ảnh đáng ngờ."))
     return [
         StructuredTool.from_function(logged(name, fn), name=name, args_schema=schema, description=desc)
         for name, fn, schema, desc in specs

@@ -11,12 +11,12 @@ export async function listFeatures(): Promise<Feature[]> {
 /** Start a run and return its job id (async). */
 export async function startRun(
   feature: string,
-  body: { input: string; output: string; apply?: boolean; rules?: string | null; overrides?: Record<string, unknown> },
+  body: { input: string; output: string; rules?: string | null; overrides?: Record<string, unknown> },
 ): Promise<string> {
   const r = await fetch(`${API_URL}/features/${encodeURIComponent(feature)}/run`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ apply: false, overrides: {}, ...body }),
+    body: JSON.stringify({ overrides: {}, ...body }),
   })
   if (!r.ok) throw new Error(`run failed (${r.status}): ${await r.text()}`)
   return ((await r.json()) as { job_id: string }).job_id

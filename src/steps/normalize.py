@@ -18,6 +18,7 @@ from runtime import node
 from domain.profile import Profile
 from domain.folders import hm_of
 from domain.hang_muc import HangMucMatcher
+from domain.state import state
 
 _NUM = re.compile(r"^\s*\d+\s*[.\-_ ]\s*")
 
@@ -32,7 +33,7 @@ def normalize(ctx) -> None:
         return
 
     matcher = HangMucMatcher(hang_muc, prof.hang_muc_alias)
-    assign: dict[str, list[str]] = ctx.data["assign"]
+    assign: dict[str, list[str]] = state(ctx).assign
     remap: dict[str, str] = {}
     for hm in sorted({hm_of(k) for k in assign if k[:1].isdigit()}):
         name = _NUM.sub("", hm)
@@ -64,11 +65,11 @@ def normalize(ctx) -> None:
             new_assign.setdefault(target_hm + k[len(hm):], []).extend(photos)
             renamed += 1
 
-    ctx.data["assign"] = new_assign
+    state(ctx).assign = new_assign
     # thư mục trên đĩa đã đổi tên trong assign — existing_dirs/hm_dirs lấy lại theo
     # trạng thái mới (best-effort; scaffold/apply tự dựng thư mục mới nếu chưa có).
-    ctx.data["existing_dirs"] = {k.rsplit("/", 1)[0] for k in new_assign if "/" in k}
-    ctx.data["hm_dirs"] = {num: f"{num}.{name}" for num, name in hang_muc.items()}
+    state(ctx).existing_dirs = {k.rsplit("/", 1)[0] for k in new_assign if "/" in k}
+    state(ctx).hm_dirs = {num: f"{num}.{name}" for num, name in hang_muc.items()}
 
     detail = []
     if renamed:

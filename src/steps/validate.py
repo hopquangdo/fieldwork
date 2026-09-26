@@ -13,20 +13,21 @@ from runtime import node
 from domain.issues import Issue
 from domain.profile import Profile
 from domain.diagnostics import per_dot, structural_issues
+from domain import sections as S
+from domain.state import state
 
 
 @node("validate")
 def validate(ctx) -> None:
     issues = issues_now(ctx)
-    ctx.data["issues"] = issues
-    ctx.data["repair_iters"] = ctx.data.get("repair_iters", 0)
+    state(ctx).issues = issues
 
     st = ctx.report.stages[-1]
     st.detail = "hợp lệ" if not issues else f"{len(issues)} vấn đề → repair"
     if not issues:
         ctx.emit("step", "cấu trúc đạt chuẩn cặp/chẵn/khác")
         return
-    ctx.report.sections[f"issues (vòng {ctx.data['repair_iters']})"] = [
+    ctx.report.sections[S.issues_round(state(ctx).repair_iters)] = [
         f"{i.hm} · {i.kind} · {i.detail}" for i in issues
     ]
     by_hm: dict[str, int] = {}
@@ -38,11 +39,11 @@ def validate(ctx) -> None:
 
 def issues_now(ctx) -> list[Issue]:
     """Vi phạm cấu trúc HIỆN TẠI — fixer gọi để biết còn việc không."""
-    return structural_issues(ctx.data["assign"], Profile.of(ctx))
+    return structural_issues(state(ctx).assign, Profile.of(ctx))
 
 
 def dot_range_pending(ctx) -> bool:
     """Còn hạng mục ``[[dot_range]]`` nào có ≥2 thư mục công-tác per-đốt không."""
     prof = Profile.of(ctx)
     nm = prof.names()
-    return any(len(per_dot(ctx.data["assign"], s["hm_prefix"], nm)) >= 2 for s in prof.dot_range)
+    return any(len(per_dot(state(ctx).assign, s["hm_prefix"], nm)) >= 2 for s in prof.dot_range)

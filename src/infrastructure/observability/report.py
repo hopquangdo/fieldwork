@@ -20,7 +20,6 @@ class Report:
     feature: str = ""
     target: str = ""
     run_id: str = ""
-    dry_run: bool = True
     aborted: bool = False
     stages: list[Stage] = field(default_factory=list)
     sections: dict = field(default_factory=dict)     # feature payload
@@ -76,7 +75,7 @@ class Report:
 
     def render_console(self) -> None:
         rid = f" · {self.run_id}" if self.run_id else ""
-        print(f"\n=== {self.feature} · {self.target}{rid} · {'DRY-RUN' if self.dry_run else 'APPLIED'} ===")
+        print(f"\n=== {self.feature} · {self.target}{rid} ===")
         for s in self.stages:
             mark = {"ok": "✓", "error": "!", "skipped": "-"}.get(s.status, "?")
             print(f"  {mark} {s.name:<18}{s.detail}  ({s.seconds}s)")

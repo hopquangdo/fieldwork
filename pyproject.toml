@@ -1,10 +1,10 @@
 [project]
 name = "photo-sort"
 version = "0.1.0"
-description = "Sort BTS inspection photos into the report-appendix folder structure (a graphrun feature)."
+description = "Sort BTS inspection photos into the report-appendix folder structure."
 requires-python = ">=3.10"
 dependencies = [
-    # graphrun (+ HTTP API)
+    # engine (LangGraph) + HTTP API
     "langgraph>=0.2.60",
     "tomli>=2 ; python_version < '3.11'",
     "fastapi>=0.110",
@@ -21,11 +21,11 @@ dependencies = [
 ]
 
 [project.scripts]
-photo-sort = "interfaces.cli.commands:cli_main"
-photo-sort-eval = "interfaces.cli.commands:eval_main"
-graphrun = "interfaces.cli.commands:graphrun_main"
+photo-sort = "app.cli.commands:cli_main"
+photo-sort-eval = "app.cli.commands:eval_main"
+photo-sort-engine = "app.cli.commands:engine_main"
 
-[project.entry-points."graphrun.features"]
+[project.entry-points."photo_sort.features"]
 photo-sort = "pipeline.feature:PhotoSortFeature"
 
 [build-system]
@@ -33,12 +33,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-only-include = ["src"]
+only-include = ["src", "app"]
 sources = ["src"]
+exclude = ["app/ui"]
 
 [dependency-groups]
 dev = ["pytest>=8", "httpx>=0.27"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]

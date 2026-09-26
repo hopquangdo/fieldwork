@@ -14,7 +14,6 @@ export type Report = {
   feature: string
   target: string
   run_id: string
-  dry_run: boolean
   aborted: boolean
   stages: Stage[]
   sections: Record<string, unknown>

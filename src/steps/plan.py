@@ -14,6 +14,8 @@ from domain.models import Move
 from domain.profile import Profile
 from domain.capture_time import timestamp_of
 from domain.filename import build_name, conforms, content_name
+from domain import sections as S
+from domain.state import state
 
 
 @node("plan")
@@ -25,16 +27,17 @@ def plan(ctx) -> None:
     force_ext = fn.ext
     strips = prof.folders.strip_prefixes
     trail_re = nm.trail_regex()
-    root = Path(ctx.data["root"])
+    root = Path(state(ctx).root)
 
     moves: list[Move] = []
     landing: list[tuple[str, str]] = []
     renamed = converted = 0
 
-    for target, paths in ctx.data["assign"].items():
+    for target, paths in state(ctx).assign.items():
         leaf = target.rsplit("/", 1)[-1]
         rename_here = not nm.is_khac(leaf)                        # 'khác' = kho, giữ tên gốc
-        content = content_name(leaf, naming_rules, strip_prefixes=strips, trail_re=trail_re)
+        content = content_name(leaf, naming_rules, strip_prefixes=strips, trail_re=trail_re,
+                               relabel=nm.trail_label)
         has_primary = any(conforms(p, fn.conform) and fn.primary_marker in p for p in paths)
         used: set[str] = set()
         first_rename = True
@@ -75,18 +78,16 @@ def plan(ctx) -> None:
             if cur != target or (new_name and new_name != name):
                 moves.append(Move(p, target, new_name, convert))
 
-    ctx.data["moves"] = moves
-    ctx.data["landing"] = landing
+    state(ctx).moves = moves
+    state(ctx).landing = landing
     detail = f"{len(moves)} move"
     if renamed:
         detail += f" · đổi tên {renamed}"
     if converted:
         detail += f" · convert→jpg {converted}"
     ctx.report.stages[-1].detail = detail
-    ctx.report.sections["plan"] = [
-        f"{m.src}  ->  {m.dest_dir}/{m.new_name or m.src.rsplit('/', 1)[-1]}" for m in moves[:50]
+    ctx.report.sections[S.PLAN] = [
+        f"{m.src}  ->  {m.dest_dir}/{m.new_name or m.src.rsplit('/', 1)[-1]}" for m in moves
     ]
-    for m in moves[:6]:
+    for m in moves:
         ctx.emit("step", f"{m.src.rsplit('/', 1)[-1]}  →  {m.dest_dir}")
-    if len(moves) > 6:
-        ctx.emit("step", f"… +{len(moves) - 6} move nữa (xem 'plan' trong report)")

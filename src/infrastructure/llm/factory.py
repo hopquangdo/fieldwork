@@ -28,7 +28,7 @@ def get_chat_model(
     - ``BaseChatModel`` → returned as-is.
     - ``str`` → a provider-prefixed name for langchain's ``init_chat_model``
       (e.g. ``"anthropic:claude-sonnet-5"``, ``"openai:gpt-4o"``).
-    - ``None`` → built from ``settings`` (or the cached :func:`get_settings`).
+    - ``None`` → built from ``settings`` (or :func:`get_settings`).
       This project always talks to an OpenAI-compatible endpoint, so
       ``LLM_BASE_URL`` / ``LLM_API_KEY`` / ``LLM_MODEL_NAME`` are **required** —
       a missing one raises ``RuntimeError``. A bare model name is sent as

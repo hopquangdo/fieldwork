@@ -13,7 +13,7 @@ scan → [vision] → classify → [even_four] → plan → check ─(ok)→ app
 - **even_four** *(opt)* — công-tác folders keep an even count ≤ `prefer_images`; surplus → "Hình ảnh khác".
 - **plan** — assignment → concrete moves (only where the photo isn't already there).
 - **check** — HARD: assignment covers every photo once, no `(folder, filename)` clash.
-- **apply** — `safe_move` + journal + retry; skipped on dry-run.
+- **apply** — `safe_move` + journal + retry.
 - **delete_empty** *(opt)* — remove empty folders left behind (keeps names containing "khác").
 
 ## Rules (`rules/day_co.toml`) — client edits this, not code
@@ -41,8 +41,7 @@ Rule keys: `match`, `exclude`, `from_folder`, `not_from_folder`, `group_by`, `ta
 ## Run
 
 ```bash
-photo-sort "<station>" "<output>"                       # dry-run
-photo-sort "<station>" "<output>" --apply
+photo-sort "<station>" "<output>"
 graphrun run photo-sort <in> <out> --set vision_assist=true --rules custom.toml
 ```
 

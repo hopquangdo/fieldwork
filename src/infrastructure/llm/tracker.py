@@ -4,7 +4,8 @@ LangChain already reports per-call token counts on ``AIMessage.usage_metadata``.
 :class:`UsageTracker` is a callback handler that sums those into a :class:`Usage`
 and logs every LLM / tool step through the ``llm`` logger.
 
-    from infrastructure.llm import Agent, Usage, UsageTracker
+    from agent.agent import Agent
+    from infrastructure.llm import Usage, UsageTracker
 
     agent = Agent.create(tools, system=...)
     await agent.run("...", track=True)

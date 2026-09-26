@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import re
+from typing import Callable
 from pathlib import Path
 
 
@@ -16,11 +17,11 @@ def conforms(filename: str, regex: str) -> bool:
 
 
 def content_name(folder_leaf: str, naming_rules: list[dict], *,
-                 strip_prefixes: tuple[str, ...], trail_re: re.Pattern | None) -> str:
+                 strip_prefixes: tuple[str, ...], trail_re: re.Pattern | None,
+                 relabel: Callable[[str], str] = lambda s: s) -> str:
     lo = folder_leaf.casefold()
     trail = trail_re.search(folder_leaf) if trail_re else None
-    key = f" {trail[1]}" if trail else ""              # giữ 'M2' / 'D3' / 'Tầng dây 1'
-    key = key.replace(" M", " Móng M") if key.strip().startswith("M") else key
+    key = f" {relabel(trail[1])}" if trail else ""     # giữ đuôi nhóm, ghi theo trail_label
 
     for r in naming_rules:
         if any(s.casefold() in lo for s in r.get("folder", [])):

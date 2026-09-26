@@ -158,7 +158,7 @@ def run_and_compare(input_dir: str | Path, gt_dir: str | Path, work_dir: str | P
     out = work / "out"
     if out.exists():
         shutil.rmtree(longpath(out), ignore_errors=True)
-    r = sort_photos(input_dir, out, apply=True, rules=rules, report_dir=work / "_report")
+    r = sort_photos(input_dir, out, rules=rules, report_dir=work / "_report")
     if r.aborted:
         raise RuntimeError(f"pipeline dừng: {'; '.join(r.errors)}")
     return compare(read_layout(out), read_layout(gt_dir))

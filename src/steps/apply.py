@@ -1,8 +1,7 @@
-"""Thực thi danh sách ``Move`` (chỉ khi ghi thật).
+"""Thực thi danh sách ``Move``.
 
 ``safe_move`` không bao giờ đè; mỗi move ghi vào journal để ``--resume``; xung đột
 tên → thư mục ``conflicts`` trong report; file đang bị khoá (WinError 32) → thử lại.
-Dry-run: bỏ qua, chỉ báo số move.
 """
 from __future__ import annotations
 
@@ -12,20 +11,16 @@ from infrastructure.filesystem import MakeDirTool, MoveFileTool, SharingViolatio
 from runtime import node
 
 from infrastructure.filesystem.image import to_jpeg_bytes
+from domain import sections as S
+from domain.state import state
 
 make_dir, move_file = MakeDirTool(), MoveFileTool()
 
 
 @node("apply")
 def apply(ctx) -> None:
-    root = ctx.data["root"]
-    moves = ctx.data["moves"]
-
-    if ctx.dry_run:
-        ctx.report.stages[-1].status = "skipped"
-        ctx.report.stages[-1].detail = f"dry-run — {len(moves)} move chưa ghi"
-        ctx.report.sections["images_after"] = ctx.report.sections["images_before"]
-        return
+    root = state(ctx).root
+    moves = state(ctx).moves
 
     done = 0
     pending = list(moves)
@@ -44,7 +39,7 @@ def apply(ctx) -> None:
             except FileNotFoundError:
                 ctx.journal.record(key, dest="(source gone)")
             except FileExistsError as exc:
-                ctx.report.sections.setdefault("conflicts", []).append(str(exc))
+                ctx.report.sections.setdefault(S.CONFLICTS, []).append(str(exc))
                 retry.append(m)
             except SharingViolation:
                 retry.append(m)
@@ -54,10 +49,10 @@ def apply(ctx) -> None:
         time.sleep(0.4 * (attempt + 1))
     failed = len(retry)
 
-    for folder in ctx.data["assign"]:
+    for folder in state(ctx).assign:
         make_dir(root / folder)     # materialise every assigned folder, incl. empty scaffold ones
 
     ctx.report.stages[-1].detail = f"moved {done}, failed {failed}"
-    ctx.report.sections["images_after"] = ctx.report.sections["images_before"]
+    ctx.report.sections[S.IMAGES_AFTER] = ctx.report.sections[S.IMAGES_BEFORE]
     if failed:
         ctx.report.abort(f"{failed} move không thực hiện được (file bị khoá)")

@@ -6,7 +6,7 @@ from typing import Any, Callable, Iterable, Sequence
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AnyMessage, BaseMessage, HumanMessage
 from langchain_core.tools import BaseTool
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 
 from infrastructure.llm.factory import get_chat_model
 from infrastructure.llm.stream import stream_agent
@@ -45,12 +45,7 @@ class Agent:
     ) -> "Agent":
         chat = model if isinstance(model, BaseChatModel) else get_chat_model(model, **model_kwargs)
         tool_list = list(tools)
-        graph = create_react_agent(
-            chat,
-            tool_list,
-            prompt=system or None,
-            checkpointer=checkpointer,
-        )
+        graph = create_agent(chat, tool_list, system_prompt=system or None, checkpointer=checkpointer)
         return cls(model=chat, tools=tool_list, system=system, graph=graph)
 
     def _input(self, user_content: UserContent, history: Sequence[AnyMessage] | None) -> dict:

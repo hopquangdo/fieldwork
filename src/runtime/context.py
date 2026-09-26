@@ -17,7 +17,6 @@ class RunContext:
     output: Path
     config: Config
     report: Report
-    dry_run: bool = True
     journal: Journal = field(default_factory=NullJournal)
     data: dict[str, Any] = field(default_factory=dict)   # scratch space shared between nodes
     on_log: Callable[[str, str], None] | None = None     # (channel, message) live progress sink
