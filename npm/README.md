@@ -1,30 +1,66 @@
-# @hopquangdo/photo-sort
+# photo-sort
 
-Sắp ảnh kiểm định cột BTS vào cấu trúc thư mục phụ lục. Windows x64.
+Sắp ảnh kiểm định cột BTS vào thư mục phụ lục. Chạy trên Windows 64-bit.
 
-```
-npm i -g @hopquangdo/photo-sort     # lần đầu tự tải bản build
-photo-sort                          # mở giao diện; backend tự chạy
-```
+## Cách 1: cài qua npm (khuyên dùng)
 
-Lần đầu: dán API key (OpenRouter) vào ô **API key** rồi Enter — lưu ở `%APPDATA%\photo-sort`.
-Không có key vẫn chạy, bỏ bước AI.
-
-Báo cáo + log: `%LOCALAPPDATA%\photo-sort\.output`. Không cần cài Python / Bun.
-
-## Phát hành (người bảo trì)
-
-Tự động bằng GitHub Actions (`.github/workflows/release.yml`):
+Cần [Node.js](https://nodejs.org) ≥ 18.
 
 ```
-git tag v0.1.1
-git push origin v0.1.1
+npm i -g @hopquangdo/photo-sort
+photo-sort
 ```
 
-→ test → build `photo-sort-win-x64.zip` → GitHub Release `v0.1.1` → `npm publish` bản `0.1.1`.
+## Cách 2: chạy trực tiếp từ repo
 
-Cần một lần: secret `NPM_TOKEN` (npm → Access Tokens → Automation) trong
-Settings → Secrets and variables → Actions của repo `hopquangdo/fieldwork`. Repo phải **public**
-để client tải được file Release (hoặc đổi `photoSort.distUrl` sang server của bạn).
+Cần [Git](https://git-scm.com), [uv](https://docs.astral.sh/uv/) và [Bun](https://bun.sh).
 
-Thử cài từ zip build trên máy: `PHOTO_SORT_DIST_URL=<đường dẫn zip> npm i -g ./npm`.
+```
+git clone https://github.com/hopquangdo/fieldwork.git
+cd fieldwork
+uv sync
+cd app/ui
+bun install
+bun run dev
+```
+
+Các lần sau chỉ cần chạy:
+
+```
+cd fieldwork/app/ui
+bun run dev
+```
+
+## Dùng giao diện
+
+1. **API key:** dán key rồi bấm Enter. Chỉ làm lần đầu.
+2. **Thư mục trạm:** chọn thư mục ảnh.
+3. **Thư mục kết quả:** chọn nơi lưu kết quả.
+4. Bấm **▶ CHẠY**.
+
+`Tab` để chuyển ô. `Esc` để thoát.
+
+## Cập nhật
+
+```
+npm i -g @hopquangdo/photo-sort@latest      # cách 1
+git pull && uv sync                         # cách 2 (trong thư mục fieldwork)
+```
+
+## Gỡ
+
+```
+npm rm -g @hopquangdo/photo-sort            # cách 1
+```
+Cách 2: xoá thư mục `fieldwork`.
+
+## Lưu ý
+
+- **Ảnh gốc:** giữ nguyên. Kết quả là bản copy.
+- **Thư mục kết quả đã có dữ liệu:** kết quả ghi sang `(2)`, `(3)`…
+- **Không có key:** vẫn chạy được, nhưng bỏ qua bước AI.
+- **Báo cáo:** `%LOCALAPPDATA%\photo-sort\.output` (cách 1), `fieldwork\.output` (cách 2)
+- **Lỗi khi cài (cách 1):**
+  ```
+  npm rebuild -g @hopquangdo/photo-sort
+  ```

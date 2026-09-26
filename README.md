@@ -87,3 +87,20 @@ my-feature = "my_pkg.feature:MyFeature"
   nest Vietnamese folder names past Windows' 260-char limit.
 - `infrastructure/llm` provides the LLM/agent plumbing and is the shared
   foundation for future agentic features.
+
+## Phát hành (npm)
+
+Tự động bằng GitHub Actions (`.github/workflows/release.yml`):
+
+```
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+→ test → build `photo-sort-win-x64.zip` → GitHub Release `v0.1.1` → `npm publish` bản `0.1.1`.
+
+Cần một lần: secret `NPM_TOKEN` (npm → Access Tokens → Automation) trong
+Settings → Secrets and variables → Actions của repo `hopquangdo/fieldwork`. Repo phải **public**
+để client tải được file Release (hoặc đổi `photoSort.distUrl` sang server của bạn).
+
+Thử cài từ zip build trên máy: `PHOTO_SORT_DIST_URL=<đường dẫn zip> npm i -g ./npm`.
