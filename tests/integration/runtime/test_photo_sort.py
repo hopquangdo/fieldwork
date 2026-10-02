@@ -40,7 +40,7 @@ def test_runs_full_chain(station, tmp_path, rules_file):
     rep = _run(station, tmp_path / "out", rules_file)
     assert not rep.aborted
     names = [s.name for s in rep.stages]
-    assert names[:4] == ["scan", "normalize", "check", "classify"]  # reconcile chain always starts here
+    assert names[:5] == ["scan", "normalize", "catalog", "check", "classify"]  # reconcile chain always starts here
     assert names[-2:] == ["apply", "delete_empty"]
     assert {"scaffold", "even_four", "validate", "plan", "verify"} <= set(names)
     assert rep.sections["images_before"] == rep.sections["images_after"] == 13

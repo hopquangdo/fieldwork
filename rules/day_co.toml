@@ -38,6 +38,23 @@ candidates = [
 
 # Mục 2 (SOP §2): đặt tên thư mục khe hở theo đốt.
 # mode = "all" (mặc định) → mỗi đốt 1 thư mục "đốt n" · "extremes" → 2 cực trị "đốt {a}-{b}", đốt giữa sang "khác"
+
+# Gợi ý nhận diện bằng mắt cho photo-classify (src/classifier) — folder ảnh PHẲNG (Zalo).
+# Khoá = chuỗi con của "hạng mục/thư mục" trong mục lục · giá trị = ảnh trông thế nào.
+[vision.hints]
+"biển nhà trạm"     = "biển tên trạm / cổng, cửa nhà trạm, đường vào trạm"
+"mặt bằng trạm"     = "TOÀN CẢNH khu trạm (nhà trạm, hàng rào, khu đất) chụp từ xa — không dùng cho ảnh cận cảnh"
+"mặt đứng cột"      = "toàn bộ thân cột anten từ chân lên đỉnh, chụp từ xa"
+"thiết bị trên cột" = "cụm anten / RRU / viba trên đỉnh cột, chụp zoom lên"
+"khe hở"            = "cận cảnh mối nối bích / bản mã giữa 2 đốt thép, bu lông nối đốt (kể cả khi han rỉ)"
+"bê tông"           = "khối móng bê tông ở chân cột lộ rõ mặt bê tông, súng bật nẩy"
+"điện trở"          = "dây tiếp địa, cọc / hộp tiếp địa, máy đo điện trở đất, kim thu sét, cáp thoát sét"
+"nghiêng"           = "máy kinh vĩ / toàn đạc trên chân máy, hoặc người đứng ngắm cột từ xa"
+"trèo cao"          = "kiểm tra đường hàn, ê-cu tại chân / giữa / đỉnh cột: cận cảnh bu lông, đường hàn, thanh giằng, ảnh chụp ngược lên trong lòng cột (kể cả khi han rỉ); value = vị trí"
+"kích thước"        = "thước / thước kẹp / thước dây áp vào cấu kiện thép để đo"
+"bu lông neo"       = "đế chân cột + bu lông neo cắm vào móng, có thước đo"
+"dị tật"            = "CHỈ ảnh chụp riêng để ghi 1 lỗi không thuộc công tác đo/kiểm tra nào (vd cáp lộn xộn, mái nhà trạm hỏng). Ảnh mối nối / chân cột / thanh thép có han rỉ vẫn xếp theo công tác tương ứng"
+
 [[dot_range]]
 hm_prefix  = "2."
 mode       = "all"

@@ -44,7 +44,8 @@ src/                       lõi, xếp theo tầng
   domain/                  logic thuần: state, profile, naming, folders, matching, filename…
   infrastructure/          filesystem · llm (client, usage, giá) · observability · persistence
   config/                  settings.py (pydantic-settings, biến LLM_*) · loader rules
-  evaluation/              so kết quả với GT theo sha1
+  classifier/              phân loại folder ảnh PHẲNG (Zalo) vào mục lục chuẩn — photo-classify
+evaluation/                so kết quả với GT theo sha1 (photo-sort-eval) — công cụ dev, ngoài src
 rules/                     _base.toml · day_co.toml · tu_dung.toml  (SOP)
 scripts/                   build_dist.py · make_eval_fixture.py
 npm/                       gói @hopquangdo/photo-sort (postinstall tải bản zip)

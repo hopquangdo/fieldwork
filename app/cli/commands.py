@@ -3,6 +3,7 @@
     photo-sort       -> cli_main    (chạy 1 lần, in ra console)
     photo-sort-eval  -> eval_main   (so kết quả với ground truth)
     photo-sort-engine -> engine_main (list / run / serve; `python -m app.cli.commands serve`)
+    photo-classify   -> classify_main (folder ảnh PHẲNG → mục lục chuẩn; xem ``classifier``)
 
 Toàn bộ logic nằm ở ``core``; file này chỉ
 phân tích tham số dòng lệnh rồi gọi vào đó.
@@ -170,3 +171,10 @@ def engine_main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(engine_main())
+
+
+# ── photo-classify ────────────────────────────────────────────────────────
+def classify_main(argv: list[str] | None = None) -> int:
+    from classifier.__main__ import main
+
+    return main(argv)

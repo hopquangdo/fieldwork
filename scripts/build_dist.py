@@ -89,7 +89,7 @@ def strip_sources(site: Path) -> None:
     """Chỉ giữ .pyc (đặt cạnh, kiểu legacy) cho code của mình."""
     ours = [site / p.name for p in (REPO / "src").iterdir()
             if p.name != "__pycache__" and (p.is_dir() or p.suffix == ".py")]
-    ours.append(site / "app")
+    ours += [site / "app", site / "evaluation"]
     n = 0
     for root in ours:
         if not root.exists():

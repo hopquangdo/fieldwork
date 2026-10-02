@@ -39,7 +39,17 @@ declared          = "day_co"
 require_photos_in = ["lực căng", "khóa cáp", "khoá cáp"]
 otherwise         = "tu_dung"
 
+[catalog]                  # mục lục thư mục chuẩn dựng TRƯỚC khi phân loại (domain/catalog.py)
+counts         = { dot = "n_dot", mong = "n_mong" }   # số giá trị của biến {dot}/{mong} lấy từ TABLEBia
+default_counts = { dot = 8, mong = 4 }                # TABLEBia thiếu (vd ảnh gửi qua Zalo) → số tối đa liệt kê
+
+[classify]                 # bộ phân loại ảnh PHẲNG (src/classifier) — gộp bằng chứng
+min_conf = 0.6             # dưới ngưỡng → 'khác' của hạng mục (≥ nửa ngưỡng) hoặc 'khác' gốc + cần người xem
+weights  = { filename = 1.0, vision = 1.0, sequence = 1.0 }   # nhân với điểm của từng nguồn
+sequence = { window_sec = 120, window_n = 2, weight = 0.3 }    # ảnh chụp liền nhau kéo về cùng hạng mục
+
 [vision]                   # dùng chung cho bước vision + tool `look` của agent
+batch          = 8         # số ảnh mỗi request (lô nhỏ → chính xác hơn)
 blueprint_hint = "ảnh là BẢN VẼ TAY chụp trên giấy (nền trắng, nét bút vẽ sơ đồ / mặt cắt / kích thước)"
 
 [agent]                    # agent cuối vòng reconcile (steps/agent_repair.py)

@@ -6,7 +6,7 @@ giống control-loop của Kubernetes / autofix của linter. ``check`` liệt k
 SOP của đầu vào; mỗi fixer **tự bỏ qua** khi không có vi phạm thuộc loại nó xử lý;
 ``validate`` kiểm lại và lặp với ``agent_repair`` (LLM) cho phần còn sót.
 
-**MỘT luồng duy nhất** — graph LUÔN có đủ 15 node (kể cả ``vision`` và ``agent_repair``),
+**MỘT luồng duy nhất** — graph LUÔN có đủ 16 node (kể cả ``vision`` và ``agent_repair``),
 KHÔNG có cờ bật/tắt. Config chỉ mang DỮ LIỆU (rules, naming, prefer_images…), không đổi
 hình dạng graph. AI (``vision`` / ``agent_repair``) cần ``.env`` với ``LLM_API_KEY``
 (bắt buộc — xem :mod:`llm.config`); thiếu thì node soft-skip, pipeline vẫn chạy.
@@ -20,6 +20,9 @@ Sơ đồ
       ▼
     scan ─────────── đọc trạm → ctx.data:
       │                photos[] · assign={folder hiện tại: [ảnh]} · hm_dirs · meta
+      ▼
+    catalog ──────── dựng MỤC LỤC chuẩn ([hang_muc] + [[subfolders]]) lên đĩa TRƯỚC khi
+      │                phân loại (mẫu rỗng cuối cùng bị delete_empty xoá).
       ▼
     check ────────── LIỆT KÊ mọi vi phạm SOP của ĐẦU VÀO THÔ → state(ctx).issues
       │                + report["vấn đề đầu vào"]. Hàm THUẦN: không sửa, không rẽ nhánh.
@@ -62,7 +65,7 @@ Sơ đồ
     apply ────────── thực thi Move (safe_move: không đè, journal → resume được).
       │                aborted → bỏ qua.
       ▼
-    delete_empty ─── xoá thư mục rỗng ngoài kế hoạch.
+    delete_empty ─── xoá thư mục rỗng ngoài kế hoạch (gồm mục lục mẫu không có ảnh).
       ▼
      END
 
@@ -91,13 +94,14 @@ from domain.state import state
 _MAX_REPAIR_ITERS = 3
 
 #: chain reconcile, chạy đúng thứ tự này; mỗi node tự bỏ qua khi không có việc
-_CHAIN = ["scan", "normalize", "check", "classify", "vision", "dot_range", "canonicalize",
+_CHAIN = ["scan", "normalize", "catalog", "check", "classify", "vision", "dot_range", "canonicalize",
           "scaffold", "even_four"]
 
 #: node graph -> step function
 _NODES = {
     "scan": steps.scan,
     "normalize": steps.normalize,
+    "catalog": steps.catalog,
     "check": steps.check,
     "classify": steps.classify,
     "vision": steps.vision,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Iterable, Sequence
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AnyMessage, BaseMessage, HumanMessage
@@ -76,19 +76,6 @@ class Agent:
         cfg = self._with_tracking(config, track)
         out = await self.graph.ainvoke(self._input(user_content, history), config=cfg)
         return out["messages"]
-
-    async def stream_values(
-        self,
-        user_content: UserContent,
-        *,
-        history: Sequence[AnyMessage] | None = None,
-        config: dict | None = None,
-    ):
-        """Async iterator: danh sách message sau mỗi bước graph (``stream_mode='values'``)."""
-        async for chunk in self.graph.astream(
-            self._input(user_content, history), config=config, stream_mode="values"
-        ):
-            yield chunk
 
     def astream(
         self,

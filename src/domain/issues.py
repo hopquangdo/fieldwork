@@ -20,4 +20,3 @@ class Issue:
 CLASSIFY_KINDS = ("unclassified", "misplaced")
 SCAFFOLD_KINDS = ("too_few", "odd_folders", "missing_khac")
 EVEN_KINDS = ("odd_images", "too_many")
-DOT_RANGE_KINDS = ("dot_range",)

@@ -17,10 +17,11 @@ src/
 │   ├── persistence/ journal
 │   └── observability/ report, console
 ├── config/          settings.py (LLM_* / .env) · loader.py (rules TOML)
-└── evaluation/      evaluator.py
+└── classifier/      folder ảnh phẳng → mục lục: catalog · intake · evidence · decide · output · llm
+evaluation/          evaluator.py — so kết quả với GT (photo-sort-eval), ngoài src
 rules/               SOP profiles (_base / day_co / tu_dung .toml)
 tests/               unit/{domain,agent,runtime} · integration/{api,llm,filesystem,runtime}
-app/                 lớp giao tiếp: api/ (FastAPI) · cli/ (photo-sort, photo-sort-eval, photo-sort-engine) ·
+app/                 lớp giao tiếp: api/ (FastAPI) · cli/ (photo-sort, photo-sort-eval, photo-sort-engine, photo-classify) ·
                      ui/ (Bun + OpenTUI, tự bật backend)
 ```
 

@@ -12,7 +12,7 @@ event thô) thành 1 chuỗi event đã gõ kiểu, đã gom message, đã xử 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Sequence
+from typing import Any, AsyncIterator
 
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.errors import GraphRecursionError

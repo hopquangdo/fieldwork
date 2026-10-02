@@ -8,6 +8,7 @@ COPY src ./src
 COPY app/__init__.py ./app/__init__.py
 COPY app/api ./app/api
 COPY app/cli ./app/cli
+COPY evaluation ./evaluation
 COPY rules ./rules
 COPY scripts/build_dist.py ./scripts/
 RUN uv venv /opt/venv \

@@ -31,11 +31,6 @@ def usd_to_vnd(usd: float) -> float:
     """Convert a USD amount to VND using :data:`USD_TO_VND` (``0`` if unset)."""
     return usd * USD_TO_VND
 
-#: Back-compat view: ``{model: (input, output)}`` USD per 1M tokens.
-PRICES: dict[str, tuple[float, float]] = {
-    k: (v["input"], v["output"]) for k, v in PRICE_TABLE.items()
-}
-
 
 def _price_entry(model: str) -> dict[str, float]:
     for key in sorted(PRICE_TABLE, key=len, reverse=True):

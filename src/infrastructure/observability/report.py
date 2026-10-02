@@ -72,21 +72,3 @@ class Report:
             print("\nABORTED:")
             for e in self.errors:
                 print(f"  ! {e}")
-
-    def render_console(self) -> None:
-        rid = f" · {self.run_id}" if self.run_id else ""
-        print(f"\n=== {self.feature} · {self.target}{rid} ===")
-        for s in self.stages:
-            mark = {"ok": "✓", "error": "!", "skipped": "-"}.get(s.status, "?")
-            print(f"  {mark} {s.name:<18}{s.detail}  ({s.seconds}s)")
-        for k, v in self.sections.items():
-            if isinstance(v, list):
-                print(f"  · {k}:")
-                for row in v[:50]:
-                    print(f"      {row}")
-            else:
-                print(f"  · {k}: {v}")
-        if self.aborted:
-            print("  ABORTED:")
-            for e in self.errors:
-                print(f"    ! {e}")
